@@ -1,0 +1,224 @@
+{
+  "generated_at": "2026-05-28T11:45:32.847Z",
+  "total_bundles": 12,
+  "successful": 10,
+  "failed": 2,
+  "agent_analyses": 2,
+  "bundles": [
+    {
+      "bundle_id": "bundle_k8x2m9p4q1_a7b3c2_1",
+      "tip_amount": 4200,
+      "submission_slot": 287341,
+      "blockhash_slot": 287340,
+      "stages": {
+        "submitted": { "timestamp": 1716897132000, "slot": 287341 },
+        "processed": { "timestamp": 1716897132420, "slot": 287342, "latency_ms": 420 },
+        "confirmed": { "timestamp": 1716897133100, "slot": 287374, "latency_ms": 1100 },
+        "finalized": { "timestamp": 1716897135200, "slot": 287405, "latency_ms": 3200 }
+      },
+      "signature": "5j7s9N2kPqR8tU3vW6xY1zA4bC7dE9fG2hI5jK8lM0nO3pQ6rS9tU2vW5xY8zA1bC4dE7fG0hI3jK6lM9nO2pQ5rS"
+    },
+    {
+      "bundle_id": "bundle_k8x2m9p4q1_d4e5f6_2",
+      "tip_amount": 3800,
+      "submission_slot": 287389,
+      "blockhash_slot": 287345,
+      "stages": {
+        "submitted": { "timestamp": 1716897252000, "slot": 287389 }
+      },
+      "failure": {
+        "occurred": true,
+        "stage": "submitted",
+        "type": "expired_blockhash",
+        "details": "blockhash expired after 187ms submission latency - blockhash was 44 slots old at submission",
+        "agent_reasoning": "Blockhash age 44 slots combined with 187ms submission latency exceeded safe window. High slot skip rate of 30% in recent window extended uncertainty in blockhash validity. Submission latency indicates network congestion at time of submission.",
+        "agent_decision": "retry with blockhash refresh, +18% tip adjustment, 240ms delay to avoid current skip window",
+        "retry_tip_adjustment": 18,
+        "retry_delay_ms": 240,
+        "retry_succeeded": true
+      },
+      "retry_count": 1,
+      "signature": "2aB5cD8eF1gH4iJ7kL0mN3oP6qR9sT2uV5wX8yZ1aB4cD7eF0gH3iJ6kL9mN2oP5qR8sT1uV4wX7yZ0aB3cD6eF9gH"
+    },
+    {
+      "bundle_id": "bundle_k8x2m9p4q1_g7h8i9_3",
+      "tip_amount": 4500,
+      "submission_slot": 287425,
+      "blockhash_slot": 287424,
+      "stages": {
+        "submitted": { "timestamp": 1716897372000, "slot": 287425 },
+        "processed": { "timestamp": 1716897372380, "slot": 287426, "latency_ms": 380 },
+        "confirmed": { "timestamp": 1716897373050, "slot": 287458, "latency_ms": 1050 },
+        "finalized": { "timestamp": 1716897375100, "slot": 287489, "latency_ms": 3100 }
+      },
+      "signature": "9hI2jK5lM8nO1pQ4rS7tU0vW3xY6zA9bC2dE5fG8hI1jK4lM7nO0pQ3rS6tU9vW2xY5zA8bC1dE4fG7hI0jK3lM6nO"
+    },
+    {
+      "bundle_id": "bundle_k8x2m9p4q1_j0k1l2_4",
+      "tip_amount": 5100,
+      "submission_slot": 287468,
+      "blockhash_slot": 287467,
+      "stages": {
+        "submitted": { "timestamp": 1716897492000, "slot": 287468 },
+        "processed": { "timestamp": 1716897492520, "slot": 287469, "latency_ms": 520 },
+        "confirmed": { "timestamp": 1716897493200, "slot": 287501, "latency_ms": 1200 },
+        "finalized": { "timestamp": 1716897495400, "slot": 287532, "latency_ms": 3400 }
+      },
+      "signature": "3pQ6rS9tU2vW5xY8zA1bC4dE7fG0hI3jK6lM9nO2pQ5rS8tU1vW4xY7zA0bC3dE6fG9hI2jK5lM8nO1pQ4rS7tU0vW"
+    },
+    {
+      "bundle_id": "bundle_k8x2m9p4q1_m3n4o5_5",
+      "tip_amount": 4800,
+      "submission_slot": 287512,
+      "blockhash_slot": 287511,
+      "stages": {
+        "submitted": { "timestamp": 1716897612000, "slot": 287512 },
+        "processed": { "timestamp": 1716897612450, "slot": 287513, "latency_ms": 450 },
+        "confirmed": { "timestamp": 1716897613100, "slot": 287545, "latency_ms": 1100 },
+        "finalized": { "timestamp": 1716897615250, "slot": 287576, "latency_ms": 3250 }
+      },
+      "signature": "7tU0vW3xY6zA9bC2dE5fG8hI1jK4lM7nO0pQ3rS6tU9vW2xY5zA8bC1dE4fG7hI0jK3lM6nO9pQ2rS5tU8vW1xY4zA"
+    },
+    {
+      "bundle_id": "bundle_k8x2m9p4q1_p6q7r8_6",
+      "tip_amount": 3200,
+      "submission_slot": 287558,
+      "blockhash_slot": 287557,
+      "stages": {
+        "submitted": { "timestamp": 1716897732000, "slot": 287558 }
+      },
+      "failure": {
+        "occurred": true,
+        "stage": "processed",
+        "type": "fee_too_low",
+        "details": "transaction landed but was dropped during leader scheduling - tip 3200 lamports below p50 (4100) of recent successful bundles",
+        "agent_reasoning": "Tip of 3200 lamports was 22% below the median of recent successful bundles (4100 lamports). Recent tip range: 3800-5100 lamports with average 4420. Current skip rate of 15% indicates moderate congestion requiring higher tip for priority inclusion. Leader quality score 0.72 suggests reliable leader but competitive environment.",
+        "agent_decision": "retry with +35% tip adjustment to reach 4320 lamports (above recent median), no blockhash refresh needed (age 1 slot), immediate retry",
+        "retry_tip_adjustment": 35,
+        "retry_delay_ms": 0,
+        "retry_succeeded": true
+      },
+      "retry_count": 1,
+      "signature": "1bC4dE7fG0hI3jK6lM9nO2pQ5rS8tU1vW4xY7zA0bC3dE6fG9hI2jK5lM8nO1pQ4rS7tU0vW3xY6zA9bC2dE5fG8hI"
+    },
+    {
+      "bundle_id": "bundle_k8x2m9p4q1_s9t0u1_7",
+      "tip_amount": 4600,
+      "submission_slot": 287595,
+      "blockhash_slot": 287594,
+      "stages": {
+        "submitted": { "timestamp": 1716897852000, "slot": 287595 },
+        "processed": { "timestamp": 1716897852410, "slot": 287596, "latency_ms": 410 },
+        "confirmed": { "timestamp": 1716897853080, "slot": 287628, "latency_ms": 1080 },
+        "finalized": { "timestamp": 1716897855150, "slot": 287659, "latency_ms": 3150 }
+      },
+      "signature": "5fG8hI1jK4lM7nO0pQ3rS6tU9vW2xY5zA8bC1dE4fG7hI0jK3lM6nO9pQ2rS5tU8vW1xY4zA7bC0dE3fG6hI9jK2lM"
+    },
+    {
+      "bundle_id": "bundle_k8x2m9p4q1_v2w3x4_8",
+      "tip_amount": 4900,
+      "submission_slot": 287638,
+      "blockhash_slot": 287637,
+      "stages": {
+        "submitted": { "timestamp": 1716897972000, "slot": 287638 },
+        "processed": { "timestamp": 1716897972480, "slot": 287639, "latency_ms": 480 },
+        "confirmed": { "timestamp": 1716897973150, "slot": 287671, "latency_ms": 1150 },
+        "finalized": { "timestamp": 1716897975300, "slot": 287702, "latency_ms": 3300 }
+      },
+      "signature": "9jK2lM5nO8pQ1rS4tU7vW0xY3zA6bC9dE2fG5hI8jK1lM4nO7pQ0rS3tU6vW9xY2zA5bC8dE1fG4hI7jK0lM3nO6pQ"
+    },
+    {
+      "bundle_id": "bundle_k8x2m9p4q1_y5z6a7_9",
+      "tip_amount": 4400,
+      "submission_slot": 287682,
+      "blockhash_slot": 287681,
+      "stages": {
+        "submitted": { "timestamp": 1716898092000, "slot": 287682 },
+        "processed": { "timestamp": 1716898092390, "slot": 287683, "latency_ms": 390 },
+        "confirmed": { "timestamp": 1716898093020, "slot": 287715, "latency_ms": 1020 },
+        "finalized": { "timestamp": 1716898095100, "slot": 287746, "latency_ms": 3100 }
+      },
+      "signature": "3nO6pQ9rS2tU5vW8xY1zA4bC7dE0fG3hI6jK9lM2nO5pQ8rS1tU4vW7xY0zA3bC6dE9fG2hI5jK8lM1nO4pQ7rS0tU"
+    },
+    {
+      "bundle_id": "bundle_k8x2m9p4q1_b8c9d0_10",
+      "tip_amount": 5200,
+      "submission_slot": 287725,
+      "blockhash_slot": 287724,
+      "stages": {
+        "submitted": { "timestamp": 1716898212000, "slot": 287725 },
+        "processed": { "timestamp": 1716898212550, "slot": 287726, "latency_ms": 550 },
+        "confirmed": { "timestamp": 1716898213250, "slot": 287758, "latency_ms": 1250 },
+        "finalized": { "timestamp": 1716898215450, "slot": 287789, "latency_ms": 3450 }
+      },
+      "signature": "7rS0tU3vW6xY9zA2bC5dE8fG1hI4jK7lM0nO3pQ6rS9tU2vW5xY8zA1bC4dE7fG0hI3jK6lM9nO2pQ5rS8tU1vW4xY"
+    },
+    {
+      "bundle_id": "bundle_k8x2m9p4q1_e1f2g3_11",
+      "tip_amount": 4700,
+      "submission_slot": 287768,
+      "blockhash_slot": 287767,
+      "stages": {
+        "submitted": { "timestamp": 1716898332000, "slot": 287768 },
+        "processed": { "timestamp": 1716898332440, "slot": 287769, "latency_ms": 440 },
+        "confirmed": { "timestamp": 1716898333100, "slot": 287801, "latency_ms": 1100 },
+        "finalized": { "timestamp": 1716898335200, "slot": 287832, "latency_ms": 3200 }
+      },
+      "signature": "1vW4xY7zA0bC3dE6fG9hI2jK5lM8nO1pQ4rS7tU0vW3xY6zA9bC2dE5fG8hI1jK4lM7nO0pQ3rS6tU9vW2xY5zA8bC"
+    },
+    {
+      "bundle_id": "bundle_k8x2m9p4q1_h4i5j6_12",
+      "tip_amount": 4300,
+      "submission_slot": 287812,
+      "blockhash_slot": 287811,
+      "stages": {
+        "submitted": { "timestamp": 1716898452000, "slot": 287812 },
+        "processed": { "timestamp": 1716898452400, "slot": 287813, "latency_ms": 400 },
+        "confirmed": { "timestamp": 1716898453050, "slot": 287845, "latency_ms": 1050 },
+        "finalized": { "timestamp": 1716898455150, "slot": 287876, "latency_ms": 3150 }
+      },
+      "signature": "5zA8bC1dE4fG7hI0jK3lM6nO9pQ2rS5tU8vW1xY4zA7bC0dE3fG6hI9jK2lM5nO8pQ1rS4tU7vW0xY3zA6bC9dE2fG"
+    }
+  ],
+  "agent_reasoning_log": [
+    {
+      "failure_observed": "blockhash expired at submission to block engine (latency: 187ms)",
+      "contributing_factors": [
+        "Blockhash age 44 slots (elevated risk) - validity window 106 slots remaining",
+        "Submission latency 187ms exceeded safe threshold - network congestion likely",
+        "High slot skip rate 30% - extended uncertainty in blockhash validity",
+        "Recent tip range: 3800-5100 lamports, avg: 4367"
+      ],
+      "confidence": 0.84,
+      "decision": {
+        "action": "wait_and_retry",
+        "tip_adjustment_percent": 18,
+        "blockhash_refresh": true,
+        "delay_ms": 240,
+        "reasoning_summary": "refresh blockhash (age 44 slots), increase tip 18% to compensate for 30% skip rate congestion, delay 240ms to avoid skip window"
+      },
+      "timestamp": 1716897252187,
+      "slot_at_decision": 287389
+    },
+    {
+      "failure_observed": "tip insufficient for inclusion during processing in block (latency: 312ms)",
+      "contributing_factors": [
+        "Tip below recent median (4100 lamports) - insufficient for current market",
+        "Tip of 3200 lamports was 22% below median of successful bundles",
+        "Moderate slot skip rate 15% - some uncertainty in timing",
+        "Leader quality score 0.72 below optimal - may need higher tip incentive",
+        "Recent tip range: 3800-5100 lamports, avg: 4420"
+      ],
+      "confidence": 0.88,
+      "decision": {
+        "action": "retry",
+        "tip_adjustment_percent": 35,
+        "blockhash_refresh": false,
+        "delay_ms": 0,
+        "reasoning_summary": "increase tip 35% to compensate for underpriced tip"
+      },
+      "timestamp": 1716897732312,
+      "slot_at_decision": 287558
+    }
+  ]
+}
