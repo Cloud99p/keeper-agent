@@ -16,6 +16,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
+import 'dotenv/config';
 import { loadConfig } from './config.js';
 import { YellowstoneService } from './yellowstone.js';
 import { LifecycleTracker } from './lifecycle.js';
