@@ -7,7 +7,7 @@
  * 3. Agent autonomously decides to retry
  * 4. Agent executes retry with new parameters
  * 
- * This is the core AI demonstration for the hackathon.
+ * This is the core AI demonstration for the project.
  */
 
 import { YellowstoneService } from '../src/yellowstone.js';

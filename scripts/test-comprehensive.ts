@@ -5,11 +5,6 @@
  * 1. Normal bundle submissions (success)
  * 2. Fault injection (blockhash expiry)
  * 3. AI autonomous failure recovery
- * 
- * Requirements met:
- * - 10+ real bundle submissions ✅
- * - At least 2 failure cases ✅
- * - AI agent autonomous retry ✅
  */
 
 import { YellowstoneService } from '../src/yellowstone.js';
@@ -58,7 +53,7 @@ async function runFaultInjectionTest(jito: JitoService): Promise<void> {
 async function main() {
   console.log('\n' + '='.repeat(80));
   console.log('COMPREHENSIVE TEST SUITE');
-  console.log('Solana Transaction Stack - Hackathon Submission');
+  console.log('Solana Transaction Stack - Production Test Suite');
   console.log('='.repeat(80));
 
   // Load configuration

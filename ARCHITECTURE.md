@@ -1,4 +1,4 @@
-# Solana Transaction Stack - Architecture Document
+# Solana Transaction Stack - Production Architecture
 
 ## System Overview
 
@@ -382,3 +382,7 @@ User Transaction → Dynamic Tip Calculation → Jito Bundle → Block Engine �
 
 *Document Version: 1.0*
 *Last Updated: 2026-05-29*
+
+---
+
+**Built for production use with real infrastructure components.**

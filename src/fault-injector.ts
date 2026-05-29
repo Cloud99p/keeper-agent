@@ -2,7 +2,7 @@
  * Fault Injection Service
  * 
  * Simulates real-world failure scenarios to test AI agent reasoning.
- * Used for hackathon demonstration of autonomous failure recovery.
+ * Used for demonstrating autonomous failure recovery.
  * 
  * Failure Scenarios:
  * - Blockhash expiry (wait >150 slots before submit)
