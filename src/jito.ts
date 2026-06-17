@@ -212,15 +212,24 @@ export class JitoService {
       throw new Error('Keypair not initialized');
     }
 
-    const transaction = new Transaction().add(
-      SystemProgram.transfer({
-        fromPubkey: this.keypair.publicKey,
-        toPubkey: this.keypair.publicKey,
-        lamports: 1000,
-      })
-    );
+    const transaction = new Transaction();
 
-    if (this.currentTipAccount) {
+    // On devnet: Just send tiny amount to self (account already exists, no rent issue)
+    // On mainnet: Send to Jito tip account
+    const isDevnet = this.config.jitoBlockEngineUrl.includes('devnet');
+    
+    if (isDevnet) {
+      // Devnet: Simple self-transfer to test tx flow (no rent - account exists)
+      transaction.add(
+        SystemProgram.transfer({
+          fromPubkey: this.keypair.publicKey,
+          toPubkey: this.keypair.publicKey,
+          lamports: 0, // Zero lamports - just validates the tx path
+        })
+      );
+      console.log('[JITO] Devnet mode: Using zero-lamport self-transfer');
+    } else if (this.currentTipAccount) {
+      // Mainnet: Send tip to Jito tip account
       transaction.add(
         SystemProgram.transfer({
           fromPubkey: this.keypair.publicKey,
@@ -228,6 +237,9 @@ export class JitoService {
           lamports: tipAmount,
         })
       );
+      console.log('[JITO] Mainnet mode: Sending %d lamports tip', tipAmount);
+    } else {
+      throw new Error('No tip account configured for mainnet');
     }
 
     return transaction;
@@ -299,12 +311,24 @@ export class JitoService {
     console.log('[JITO] Submitting bundle:', bundleId);
     console.log('='.repeat(60));
 
+    // Initialize variables outside try block for retry loop access
+    let currentSlot = 0;
+    let leader: string | null = null;
+    let leaderQuality = 0.5;
+    let skipRate = 0;
+    let recentTips: number[] = [];
+    let tipAmount = 5000;
+    let transaction: Transaction | null = null;
+    let startTime = 0;
+    let currentTipAmount = 0;
+    let currentBlockhashSlot = 0;
+
     try {
       // Step 1: Get current slot and leader info
-      const currentSlot = this.yellowstone.getCurrentSlot();
-      const leader = this.yellowstone.getLeaderForSlot(currentSlot);
-      const leaderQuality = leader ? this.yellowstone.getLeaderQuality(leader) : 0.5;
-      const skipRate = await this.yellowstone.getSkipRate(20);
+      currentSlot = this.yellowstone.getCurrentSlot();
+      leader = this.yellowstone.getLeaderForSlot(currentSlot);
+      leaderQuality = leader ? this.yellowstone.getLeaderQuality(leader) : 0.5;
+      skipRate = await this.yellowstone.getSkipRate(20);
 
       console.log('[JITO] Current slot:', currentSlot);
       console.log('[JITO] Leader:', leader ?? 'unknown');
@@ -312,7 +336,7 @@ export class JitoService {
       console.log('[JITO] Skip rate:', (skipRate * 100).toFixed(1) + '%');
 
       // Step 2: Get recent successful tips
-      const recentTips = this.lifecycle.getRecentTips(10);
+      recentTips = this.lifecycle.getRecentTips(10);
       console.log('[JITO] Recent tips:', recentTips);
 
       // Step 3: Calculate dynamic tip
@@ -323,14 +347,14 @@ export class JitoService {
         congestionLevel: skipRate,
       };
 
-      const tipAmount = calculateDynamicTip(tipFactors, this.config);
+      tipAmount = calculateDynamicTip(tipFactors, this.config);
       console.log('[JITO] Calculated tip:', tipAmount, 'lamports');
 
       // Step 4: Create test transaction
-      let transaction = await this.createTestTransaction(tipAmount);
-      const startTime = Date.now();
-      let currentTipAmount = tipAmount;
-      let currentBlockhashSlot = currentSlot;
+      transaction = await this.createTestTransaction(tipAmount);
+      startTime = Date.now();
+      currentTipAmount = tipAmount;
+      currentBlockhashSlot = currentSlot;
 
       // Step 5: Apply fault injection (for AI demonstration)
       let faultDelayMs = 0;

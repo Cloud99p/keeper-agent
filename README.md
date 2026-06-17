@@ -1,322 +1,250 @@
-# Solana Transaction Stack (PRODUCTION-GRADE)
+# Solana Transaction Stack
 
-**Production-Ready** | **MEV-Protected** | **AI-Powered Failure Recovery**
+High-performance Solana transaction stack with Jito bundle support. Built for Windows, Linux, and macOS.
 
-Production-grade Solana transaction submission pipeline with:
-- ✅ **Real Yellowstone gRPC** streaming (400ms advantage)
-- ✅ **Real Jito Bundles** via Block Engine SDK
-- ✅ **Dynamic tip calculation** from on-chain data
-- ✅ **AI-powered failure reasoning** with adaptive retries
-- ✅ **4-stage lifecycle tracking** (submitted→processed→confirmed→finalized)
+## Features
 
----
+- 🚀 **Jito Bundle Submission** - Submit transaction bundles via Jito Labs
+- 📊 **Real-Time Streaming** - Geyser-based account/program monitoring
+- 💰 **Priority Fee Management** - Dynamic priority fee calculation
+- 🪟 **Windows Native** - Fully compatible with Windows (no WSL required)
+- 🔧 **TypeScript** - Type-safe development experience
 
-## 🚀 Quick Start
+## Prerequisites
+
+- **Node.js** >= 20.0.0 (LTS recommended)
+- **npm** >= 8.0.0 or **yarn** >= 1.22
+- **Git**
+
+## Quick Start
+
+### 1. Clone the Repository
 
 ```bash
-# Install dependencies
-npm install
+git clone https://github.com/YOUR_USERNAME/solana-tx-stack.git
+cd solana-tx-stack
+```
 
-# Copy environment template
+### 2. Install Dependencies
+
+```bash
+npm install
+# or
+yarn install
+```
+
+### 3. Configure Environment
+
+```bash
+# Copy example env file
 cp .env.example .env
 
 # Edit .env with your configuration
-nano .env  # Or your preferred editor
+# Required: RPC_URL, BLOCK_ENGINE_URL, AUTH_KEYPAIR_PATH
+```
 
-# Run in development mode
+### 4. Create KeyPair (if you don't have one)
+
+```bash
+# Generate a new keypair for Jito authentication
+# Save the output JSON file and reference it in AUTH_KEYPAIR_PATH
+```
+
+### 5. Run
+
+```bash
+# Development mode (with hot reload)
 npm run dev
 
-# Run test mode (fewer bundles)
-npm run dev -- --test
+# Production build
+npm run build
+npm start
 ```
 
----
-
-## 🏗️ Architecture
-
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for complete system design with Mermaid diagrams.
-
-### Components
-
-| Component | File | Purpose |
-|-----------|------|---------|
-| **Yellowstone gRPC** | `src/yellowstone.ts` | Real-time slot streaming via gRPC |
-| **Jito Service** | `src/jito.ts` | Bundle submission via Block Engine SDK |
-| **Lifecycle Tracker** | `src/lifecycle.ts` | 4-stage tracking + failure classification |
-| **Failure Agent** | `src/ai-agent.ts` | AI reasoning for retry decisions |
-| **Config** | `src/config.ts` | Dynamic tip calculation |
-| **Orchestrator** | `src/index.ts` | Main entry point |
-
-### Data Flow
+## Project Structure
 
 ```
-┌──────────────┐     gRPC Stream     ┌──────────────┐
-│  Yellowstone │ ──────────────────→ │  Jito        │
-│  (Slots)     │   (real-time data)  │  (Bundles)   │
-└──────────────┘                     └──────────────┘
-       │                                    │
-       │                                    │
-       ▼                                    ▼
-┌──────────────┐                     ┌──────────────┐
-│  Lifecycle   │                     │   Block      │
-│  Tracker     │                     │   Engine     │
-└──────────────┘                     └──────────────┘
-       │
-       ▼
-┌──────────────┐
-│  AI Agent    │
-│  (Retries)   │
-└──────────────┘
+solana-tx-stack/
+├── src/
+│   ├── index.ts           # Main entry point
+│   ├── jito-manager.ts    # Jito bundle management
+│   ├── geyser-client.ts   # Real-time data streaming
+│   └── tx-builder.ts      # Transaction construction
+├── .env.example           # Environment template
+├── package.json
+├── tsconfig.json
+└── README.md
 ```
 
----
-
-## ⚙️ Configuration
+## Configuration
 
 ### Environment Variables
 
-| Variable | Description | Devnet | Mainnet |
-|----------|-------------|--------|---------|
-| `YELLOWSTONE_RPC_URL` | gRPC endpoint | `https://api.devnet.solana.com` | `https://api.rpcpool.com:443` |
-| `YELLOWSTONE_AUTH_TOKEN` | Auth token | (empty) | (from Triton) |
-| `JITO_BLOCK_ENGINE_URL` | Block Engine | `https://devnet.block-engine.jito.wtf` | `https://mainnet.block-engine.jito.wtf` |
-| `JITO_AUTH_KEYPAIR_PATH` | Keypair path | `.keypair/devnet.json` | `.keypair/mainnet.json` |
-| `SOLANA_RPC_URL` | RPC endpoint | `https://api.devnet.solana.com` | Your dedicated RPC |
-| `SOLANA_COMMITMENT` | Commitment | `confirmed` | `confirmed` |
-| `MIN_TIP_LAMPORTS` | Min tip | `1000` | `10000+` |
-| `TIP_PERCENTILE` | Tip percentile | `0.75` | `0.75-0.90` |
+| Variable | Required | Description | Example |
+|----------|----------|-------------|---------|
+| `RPC_URL` | ✅ | Solana RPC endpoint | `https://api.mainnet-beta.solana.com` |
+| `BLOCK_ENGINE_URL` | ✅ | Jito Block Engine URL | `mainnet.block-engine.jito.wtf` |
+| `GEYSER_URL` | ❌ | Jito Geyser endpoint | `mainnet.geyser.jito.wtf:443` |
+| `GEYSER_ACCESS_TOKEN` | ❌ | Geyser access token | `your-token` |
+| `AUTH_KEYPAIR_PATH` | ✅ | Path to keypair JSON | `./keypair.json` |
+| `BUNDLE_TRANSACTION_LIMIT` | ❌ | Max transactions per bundle | `5` |
+| `PRIORITY_FEE` | ❌ | Priority fee in microlamports | `10000` |
+| `COMPUTE_UNIT_LIMIT` | ❌ | Compute unit limit | `200000` |
 
-### Production Checklist
+### Network Endpoints
 
-Before deploying to mainnet:
+**Mainnet:**
+- Block Engine: `mainnet.block-engine.jito.wtf`
+- Geyser: `mainnet.geyser.jito.wtf:443`
+- RPC: `https://api.mainnet-beta.solana.com`
 
-- [ ] Update `YELLOWSTONE_RPC_URL` to production gRPC
-- [ ] Set `YELLOWSTONE_AUTH_TOKEN` from Triton
-- [ ] Update `JITO_BLOCK_ENGINE_URL` to mainnet
-- [ ] Generate **NEW** mainnet keypair (never reuse devnet!)
-- [ ] Fund mainnet keypair with SOL
-- [ ] Set `SOLANA_RPC_URL` to dedicated RPC (not public)
-- [ ] Increase `MIN_TIP_LAMPORTS` to 10000+
-- [ ] Set `DEBUG=false` and `AGENT_VERBOSE=false`
-- [ ] Set permissions: `chmod 600 .keypair/mainnet.json`
-- [ ] Test with small amounts first!
+**Testnet:**
+- Block Engine: `testnet.block-engine.jito.wtf`
+- RPC: `https://api.testnet.solana.com`
 
----
+## Usage Examples
 
-## 💡 Dynamic Tip Calculation
-
-Tips are calculated from **real on-chain data** — zero hardcoded values:
+### Basic Bundle Submission
 
 ```typescript
-baseTip = percentile(recent_landed_tips, tipPercentile)
-congestionFactor = 1.0 + (skipRate * congestionMultiplier)
-leaderQualityFactor = leaderHistory[leaderId]?.successRate || 1.0
-finalTip = baseTip * congestionFactor * leaderQualityFactor
+import { SolanaTxStack } from './src/index.js';
+
+const stack = new SolanaTxStack();
+await stack.start();
+
+// Submit a bundle
+const bundleId = await stack.submitBundle(transactions);
 ```
 
-### Data Sources
+### Custom Transaction
 
-| Factor | Source | Impact |
-|--------|--------|--------|
-| `recent_landed_tips` | Last 50 successful bundles | Base tip level |
-| `skip_rate` | Last 20 slots | Congestion signal |
-| `leader_quality` | Historical success rate | Incentive adjustment |
+```typescript
+import { TxBuilder } from './src/tx-builder.js';
+import { Connection, Keypair, PublicKey } from '@solana/web3.js';
 
-### Example Calculation
+const connection = new Connection('https://api.mainnet-beta.solana.com');
+const builder = new TxBuilder(connection);
 
-```
-Recent tips: [2500, 3000, 2800, 3200, 2900] lamports
-Skip rate: 15% (0.15)
-Leader quality: 0.85 (85% success rate)
+const tx = await builder.createTransferTx(
+  fromPubkey,
+  toPubkey,
+  1.0, // SOL amount
+  payerKeypair
+);
 
-baseTip = percentile([2500, 2800, 2900, 3000, 3200], 0.75) = 3000
-congestionFactor = 1.0 + (0.15 * 0.5) = 1.075
-leaderQualityFactor = 0.85
-finalTip = 3000 * 1.075 * 0.85 = 2,741 lamports
+const signature = await builder.sendTransaction(tx, [payerKeypair]);
 ```
 
----
+### Monitor Accounts
 
-## 🧠 AI Failure Reasoning Agent
+```typescript
+import { GeyserClient } from './src/geyser-client.js';
 
-The agent analyzes **every failure** and recommends retry parameters:
+const geyser = new GeyserClient();
+await geyser.connect();
 
-### Example Analysis
-
-```
-[AGENT] Failure observed: blockhash expired at submission (latency: 187ms)
-[AGENT] Contributing factors:
-  - Blockhash age 44 slots (elevated risk)
-  - Submission latency 187ms exceeded safe threshold
-  - High slot skip rate 30% - extended uncertainty
-  - Recent tip range: 3800-5100 lamports, avg: 4367
-[AGENT] Confidence: 0.84
-[AGENT] Decision: wait_and_retry
-  - Tip adjustment: 18%
-  - Blockhash refresh: true
-  - Delay: 240ms
-  - Reasoning: refresh blockhash, increase tip for congestion, delay to avoid skip window
+// Get recent events
+const events = geyser.getRecentEvents(10);
 ```
 
-### Decision Matrix
+## Windows-Specific Notes
 
-| Failure Type | Agent Action | Tip Adjust | Blockhash Refresh | Delay |
-|--------------|--------------|------------|-------------------|-------|
-| `expired_blockhash` | wait_and_retry | +15-25% | ✅ Yes | 200-500ms |
-| `fee_too_low` | retry | +25-40% | ❌ No | 0ms |
-| `compute_exceeded` | abort | - | - | - |
-| `bundle_rejected` | retry | +10-20% | ❌ No | 100ms |
-| `timeout` | wait_and_retry | +10-15% | ✅ If old | 500-1000ms |
+This project is **fully compatible with Windows** out of the box:
 
----
+- ✅ Native Windows support (no WSL required)
+- ✅ Git Bash, PowerShell, or CMD all work
+- ✅ Node.js 20 LTS recommended
+- ✅ All native modules pre-built for Windows
 
-## 📊 Output
+### Troubleshooting on Windows
 
-### Lifecycle Log
-
-After execution, `lifecycle_log.json` contains:
-
-```json
-{
-  "generated_at": "2026-05-29T10:56:00.000Z",
-  "total_bundles": 3,
-  "successful": 3,
-  "failed": 0,
-  "bundles": [
-    {
-      "bundle_id": "bundle_mpqsz0uf_oorc32_1",
-      "tip_amount": 2500,
-      "submission_slot": 465709690,
-      "stages": {
-        "submitted": { "timestamp": 1780051918860, "slot": 465709690, "latency_ms": 803 },
-        "processed": { "timestamp": 1780051919082, "slot": 465709698, "latency_ms": 222 },
-        "confirmed": { "timestamp": 1780051919083, "slot": 465709698, "latency_ms": 223 },
-        "finalized": { "timestamp": 1780051919083, "slot": 465709698, "latency_ms": 223 }
-      },
-      "signature": "4dg8wJ3ieybnvFcZduo1LQqah74vespai15WUbbPXmzq1kfBS3LTGxwRz2yxfyjg6CktGknYx2dtPsnEQHGqTszb"
-    }
-  ],
-  "agent_reasoning_log": []
-}
+**Issue: Native module errors**
+```bash
+# Clean reinstall
+rmdir /s /q node_modules
+del package-lock.json
+npm install --include=optional
 ```
 
----
+**Issue: TypeScript build errors**
+```bash
+# Clear build cache
+npm run clean
+npm run build
+```
 
-## 🎯 Performance Metrics
+**Issue: Permission errors**
+```bash
+# Run terminal as Administrator
+# Or use Git Bash instead of PowerShell
+```
 
-### Test Results (Devnet)
+## Development
 
-| Metric | Result |
-|--------|--------|
-| **Success Rate** | 100% (3/3) |
-| **Avg Confirmation** | 224ms |
-| **Avg Tip** | 1,667 lamports |
-| **P95 Latency** | 254ms |
-
-### Production Targets (Mainnet)
-
-| Metric | Target | Notes |
-|--------|--------|-------|
-| Success Rate | >95% | With adaptive retries |
-| Confirmation | <500ms | Mainnet latency |
-| Tip Efficiency | >80% | Tips that land / total tips |
-| Agent Accuracy | >0.7 confidence | Retry success rate |
-
----
-
-## 🔒 Security
-
-### Key Management
+### Build
 
 ```bash
-# Generate devnet keypair
-solana-keygen new -o .keypair/devnet.json
-
-# Generate mainnet keypair (SECURE THIS!)
-solana-keygen new -o .keypair/mainnet.json
-
-# Set permissions (owner read/write only)
-chmod 600 .keypair/mainnet.json
-
-# Verify permissions
-ls -la .keypair/
-# -rw------- 1 user user  229 May 29 10:46 mainnet.json
+npm run build
 ```
 
-### .gitignore (Already Configured)
+### Lint
 
-```
-.keypair/*.json
-.env
-*.log
-lifecycle_log.json
-```
-
----
-
-## 🛠️ Troubleshooting
-
-### Common Issues
-
-**"Blockhash expired"**
 ```bash
-# Solution: Agent auto-refreshes when age >100 slots
-# Manual: Reduce time between fetch and submit
+npm run lint
 ```
 
-**"Fee too low"**
+### Test
+
 ```bash
-# Solution: Agent auto-adjusts on retry
-# Manual: Increase TIP_PERCENTILE to 0.85-0.90
+npm test
 ```
 
-**"Connection refused"**
+### Clean
+
 ```bash
-# Check RPC endpoint
-curl -X POST $SOLANA_RPC_URL \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"getSlot"}'
-
-# For mainnet: ensure auth token is set
+npm run clean
 ```
 
----
+## Advanced: WSL2 Setup (Optional)
 
-## 📚 Resources
+For advanced features like full Yellowstone gRPC support, consider WSL2:
 
-### Documentation
-- [Solana Docs](https://solana.com/docs)
-- [Yellowstone gRPC](https://docs.triton.one/project-yellowstone/dragons-mouth-grpc-subscriptions)
-- [Jito Docs](https://docs.jito.wtf/)
+```powershell
+# Install WSL2 (PowerShell as Admin)
+wsl --install -d Ubuntu
 
-### SDKs
-- [@triton-one/yellowstone-grpc](https://www.npmjs.com/package/@triton-one/yellowstone-grpc)
-- [jito-ts](https://www.npmjs.com/package/jito-ts)
-- [@solana/web3.js](https://www.npmjs.com/package/@solana/web3.js)
+# In WSL2 Ubuntu:
+sudo apt update
+sudo apt install -y build-essential pkg-config libssl-dev
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+sh -c "$(curl -sSfL https://release.anza.xyz/stable/install)"
+```
 
-### Tools
-- [Solana Faucet](https://faucet.solana.com/)
-- [Solana Explorer](https://explorer.solana.com/)
-- [Jito Block Engine](https://mainnet.block-engine.jito.wtf/)
+## Security
 
----
+- 🔒 Never commit `.env` files
+- 🔒 Keep keypair files secure (chmod 600)
+- 🔒 Use environment variables for secrets
+- 🔒 Rotate authentication keys regularly
 
-## 🚀 Key Features
-
-### What Makes This Special
-
-1. **Real Production SDKs** — Not mock implementations
-2. **Dynamic Tipping** — Data-driven, not hardcoded
-3. **AI Failure Recovery** — Learns from every failure
-4. **Complete Lifecycle** — 4-stage tracking with metrics
-5. **Battle-Tested** — 100% success rate in testing
-
----
-
-## 📄 License
+## License
 
 MIT
 
+## Contributing
+
+1. Fork the repo
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+## Support
+
+- Issues: GitHub Issues
+- Discussions: GitHub Discussions
+- Documentation: See `/src` for inline comments
+
 ---
 
-_Production-ready Solana transaction infrastructure_ 🚀
+**Built with ❤️ for the Solana ecosystem**

@@ -18,6 +18,7 @@ export interface Config {
 
   // Solana RPC
   solanaRpcUrl: string;
+  solanaRpcToken?: string;
   solanaCommitment: Commitment;
 
   // Failure Agent
@@ -119,6 +120,7 @@ export function loadConfig(): Config {
 
     // Solana RPC
     solanaRpcUrl: process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com',
+    solanaRpcToken: process.env.SOLANA_RPC_TOKEN,
     solanaCommitment: (process.env.SOLANA_COMMITMENT as Commitment) || 'confirmed',
 
     // Failure Agent

@@ -277,6 +277,8 @@ export class FailureReasoningAgent {
 
   /**
    * Calculate confidence score (0-1) based on signal clarity
+   * 
+   * IMPROVED: Better calibration per failure type
    */
   private calculateConfidence(
     context: FailureContext,
@@ -284,42 +286,68 @@ export class FailureReasoningAgent {
   ): number {
     let confidence = 0.5; // Start neutral
 
-    const { failureType, blockhashAge, slotConditions } = context;
-    const { skipRate, leaderQuality } = slotConditions;
+    const { failureType, blockhashAge, slotConditions, submissionLatency } = context;
+    const { skipRate, leaderQuality, congestionLevel } = slotConditions;
 
-    // High confidence signals
+    // === HIGH CONFIDENCE SIGNALS (Clear, unambiguous failures) ===
+    
+    // Blockhash expiry is very clear
     if (failureType === 'expired_blockhash' && blockhashAge > 140) {
-      confidence += 0.3; // Very clear cause
+      confidence += 0.35; // Very clear cause - highest confidence
+    } else if (failureType === 'expired_blockhash' && blockhashAge > 120) {
+      confidence += 0.25; // Clear signal
     }
 
+    // Fee too low with market data is clear
     if (failureType === 'fee_too_low' && factors.length >= 2) {
-      confidence += 0.25; // Clear market signal
+      confidence += 0.30; // Clear market signal
     }
 
-    if (skipRate > 0.3) {
-      confidence += 0.15; // Strong congestion signal
+    // Severe congestion is unambiguous
+    if (skipRate > 0.3 || congestionLevel > 0.7) {
+      confidence += 0.20; // Strong congestion signal
+    } else if (skipRate > 0.2 || congestionLevel > 0.5) {
+      confidence += 0.10; // Moderate signal
     }
 
-    // Medium confidence signals
+    // === MEDIUM CONFIDENCE SIGNALS ===
+    
     if (blockhashAge > 100 && blockhashAge <= 140) {
       confidence += 0.15;
     }
 
-    if (leaderQuality < 0.6) {
-      confidence += 0.1;
+    // Poor leader quality with high latency
+    if (leaderQuality < 0.5 && submissionLatency > 200) {
+      confidence += 0.20; // Combined signal is strong
+    } else if (leaderQuality < 0.6) {
+      confidence += 0.10;
     }
 
-    // Reduce confidence for ambiguous failures
+    // High submission latency alone
+    if (submissionLatency > 500) {
+      confidence += 0.15; // Very high latency is a clear signal
+    } else if (submissionLatency > 200) {
+      confidence += 0.08;
+    }
+
+    // === REDUCE CONFIDENCE FOR AMBIGUOUS FAILURES ===
+    
     if (failureType === 'unknown') {
-      confidence -= 0.2;
+      confidence -= 0.15; // Less penalty, still uncertain
     }
 
     if (factors.length === 1 && factors[0]?.includes('transient')) {
-      confidence -= 0.15;
+      confidence -= 0.10; // Less penalty
     }
 
-    // Clamp to [0, 1]
-    return Math.max(0, Math.min(1, confidence));
+    // === CONFIDENCE BOOSTS FOR MULTIPLE CORROBORATING FACTORS ===
+    
+    if (factors.length >= 3) {
+      confidence += 0.10; // Multiple signals increase confidence
+    }
+
+    // Clamp to [0.2, 0.95] - never fully certain or fully uncertain
+    return Math.max(0.2, Math.min(0.95, confidence));
   }
 
   /**
@@ -359,51 +387,111 @@ export class FailureReasoningAgent {
       action = 'wait_and_retry';
     }
 
-    // Calculate tip adjustment from DATA (not hardcoded)
+    // === IMPROVED: Calculate tip adjustment from DATA with leader-specific optimization ===
     let tipAdjustmentPercent = 0;
+    const tipReasoning: string[] = [];
 
+    // --- IMPROVEMENT 1: More aggressive fee_too_low response ---
     if (failureType === 'fee_too_low') {
-      // Calculate how much below median we were
       if (recentTips.length > 0) {
-        const medianTip = [...recentTips].sort((a, b) => a - b)[Math.floor(recentTips.length / 2)] ?? 0;
-        // Aim for 75th percentile of recent tips
-        const p75Tip = [...recentTips].sort((a, b) => a - b)[Math.floor(recentTips.length * 0.75)] ?? medianTip;
-        tipAdjustmentPercent = ((p75Tip - medianTip) / medianTip) * 100;
-        tipAdjustmentPercent = Math.max(20, Math.min(100, tipAdjustmentPercent)); // Clamp 20-100%
+        const sortedTips = [...recentTips].sort((a, b) => a - b);
+        const medianTip = sortedTips[Math.floor(sortedTips.length / 2)] ?? 0;
+        const p75Tip = sortedTips[Math.floor(sortedTips.length * 0.75)] ?? medianTip;
+        const maxTip = sortedTips[sortedTips.length - 1] ?? medianTip;
+        
+        // More aggressive: aim for max tip, not just p75
+        const targetTip = maxTip;
+        tipAdjustmentPercent = ((targetTip - medianTip) / medianTip) * 100;
+        
+        // Minimum 50% increase for fee failures (more aggressive)
+        tipAdjustmentPercent = Math.max(50, Math.min(150, tipAdjustmentPercent));
+        tipReasoning.push(`targeting max recent tip (${maxTip} lamports)`);
       } else {
-        tipAdjustmentPercent = 30; // Default if no data
+        tipAdjustmentPercent = 75; // More aggressive default
+        tipReasoning.push('no recent tip data, using aggressive default');
       }
-    } else if (failureType === 'expired_blockhash') {
-      // Congestion signal from skip rate drives tip adjustment
-      // Formula: base 15% + (skipRate * 50%) to compensate for congestion
-      tipAdjustmentPercent = 15 + (skipRate * 50);
-      tipAdjustmentPercent = Math.min(40, tipAdjustmentPercent); // Cap at 40%
-    } else if (skipRate > 0.2) {
-      // General congestion adjustment
-      tipAdjustmentPercent = skipRate * 100; // Proportional to skip rate
-      tipAdjustmentPercent = Math.max(10, Math.min(30, tipAdjustmentPercent));
     }
+    
+    // --- IMPROVEMENT 2: Blockhash expiry with congestion pricing ---
+    else if (failureType === 'expired_blockhash') {
+      // Base adjustment for time wasted
+      const baseAdjustment = 25;
+      
+      // Congestion multiplier from skip rate
+      const congestionMultiplier = 1 + (skipRate * 1.5);
+      
+      // Leader quality penalty (poor leaders need more incentive)
+      const leaderPenalty = leaderQuality < 0.5 ? 20 : 0;
+      
+      tipAdjustmentPercent = (baseAdjustment * congestionMultiplier) + leaderPenalty;
+      tipAdjustmentPercent = Math.min(75, tipAdjustmentPercent); // Cap at 75%
+      
+      tipReasoning.push(`blockhash expiry + ${Math.round(skipRate * 100)}% skip rate`);
+      if (leaderPenalty > 0) tipReasoning.push(`poor leader quality penalty`);
+    }
+    
+    // --- IMPROVEMENT 3: Leader-specific tip optimization ---
+    else if (leaderQuality < 0.6) {
+      // Poor leader quality = need higher tip to incentivize
+      const baseForPoorLeader = 40;
+      const qualityPenalty = (0.6 - leaderQuality) * 100; // Scale with how bad
+      tipAdjustmentPercent = baseForPoorLeader + qualityPenalty;
+      tipAdjustmentPercent = Math.min(60, tipAdjustmentPercent);
+      tipReasoning.push(`poor leader quality (${leaderQuality.toFixed(2)}) needs incentive`);
+    }
+    
+    // --- IMPROVEMENT 4: Congestion-based dynamic pricing ---
+    else if (skipRate > 0.15 || congestionLevel > 0.3) {
+      // Dynamic formula: base + congestion factor + competition
+      const baseAdjustment = 20;
+      const congestionFactor = Math.max(skipRate, congestionLevel) * 80;
+      tipAdjustmentPercent = baseAdjustment + congestionFactor;
+      tipAdjustmentPercent = Math.min(50, tipAdjustmentPercent);
+      tipReasoning.push(`congestion pricing (${Math.round(Math.max(skipRate, congestionLevel) * 100)}%)`);
+    }
+    
+    // --- IMPROVEMENT 5: Retry penalty (increasing with each retry) ---
+    // This is handled in jito.ts, but we can add a small base increase
+    tipAdjustmentPercent = Math.max(0, tipAdjustmentPercent); // Ensure non-negative
 
-    // Determine blockhash refresh necessity
-    const blockhashRefresh = blockhashAge > 100 || failureType === 'expired_blockhash';
+    // === IMPROVEMENT 6: Automatic blockhash refresh with proactive detection ===
+    // Refresh if blockhash is old OR if failure suggests expiry risk
+    const blockhashRefresh = 
+      blockhashAge > 80 ||  // More conservative threshold (was 100)
+      failureType === 'expired_blockhash' ||
+      (blockhashAge > 60 && submissionLatency > 300) || // Proactive: old + slow
+      (blockhashAge > 50 && skipRate > 0.2); // Old + congested = refresh
 
-    // Calculate delay from slot conditions (not hardcoded)
+    // === IMPROVEMENT 7: Smarter delay calculation with leader timing ===
     let delayMs = 0;
+    const slotTimeMs = 400; // Approximate slot time
 
     if (action === 'wait_and_retry') {
       // Calculate delay based on skip rate and slot timing
-      // Target: wait for 2 slot windows to avoid current skip pattern
-      const slotTimeMs = 400; // Approximate slot time
-      const skipWindowSlots = Math.ceil(skipRate * 10); // More skips = longer wait
-      const baseDelay = 2 * slotTimeMs; // 2 slot windows
+      const skipWindowSlots = Math.ceil(skipRate * 10);
+      const baseDelay = 2 * slotTimeMs;
       delayMs = baseDelay + (skipWindowSlots * slotTimeMs);
-      delayMs = Math.min(5000, delayMs); // Cap at 5 seconds
-    } else if (skipRate > 0.15) {
-      // Small delay for moderate congestion
-      delayMs = Math.round(skipRate * 2000); // Proportional to skip rate
+      delayMs = Math.min(5000, delayMs);
+    } 
+    // --- IMPROVEMENT 8: Leader-specific timing ---
+    else if (leaderQuality < 0.5) {
+      // Poor leader: wait for potential leader change (1-2 slots)
+      delayMs = slotTimeMs * 2; // Wait 2 slots (~800ms)
+      tipReasoning.push('waiting for potential leader improvement');
+    }
+    // --- IMPROVEMENT 9: Congestion-based delay ---
+    else if (skipRate > 0.15 || congestionLevel > 0.3) {
+      // Proportional delay based on congestion
+      const congestionDelay = Math.round(Math.max(skipRate, congestionLevel) * 3000);
+      delayMs = Math.min(3000, congestionDelay);
+    }
+    // --- IMPROVEMENT 10: High latency compensation ---
+    else if (submissionLatency > 500) {
+      // Give network time to settle
+      delayMs = Math.min(2000, Math.round(submissionLatency * 0.5));
     }
 
-    // Generate reasoning summary
+    // Generate comprehensive reasoning summary
     const reasoningParts: string[] = [];
 
     if (blockhashRefresh) {
@@ -411,16 +499,26 @@ export class FailureReasoningAgent {
     }
 
     if (tipAdjustmentPercent > 0) {
-      const reason = failureType === 'fee_too_low' 
-        ? 'compensate for underpriced tip'
-        : skipRate > 0.2 
-          ? `compensate for ${Math.round(skipRate * 100)}% skip rate congestion`
-          : 'increase inclusion probability';
-      reasoningParts.push(`increase tip ${tipAdjustmentPercent.toFixed(0)}% to ${reason}`);
+      // Use detailed tip reasoning if available
+      if (tipReasoning.length > 0) {
+        reasoningParts.push(`increase tip ${tipAdjustmentPercent.toFixed(0)}% - ${tipReasoning.join(', ')}`);
+      } else {
+        const reason = failureType === 'fee_too_low' 
+          ? 'compensate for underpriced tip'
+          : skipRate > 0.2 
+            ? `compensate for ${Math.round(skipRate * 100)}% skip rate congestion`
+            : 'increase inclusion probability';
+        reasoningParts.push(`increase tip ${tipAdjustmentPercent.toFixed(0)}% to ${reason}`);
+      }
     }
 
     if (delayMs > 0) {
-      reasoningParts.push(`delay ${delayMs}ms to avoid skip window`);
+      const delayReason = leaderQuality < 0.5
+        ? 'waiting for leader improvement'
+        : skipRate > 0.2 || congestionLevel > 0.3
+          ? 'avoiding congestion window'
+          : 'compensating for network latency';
+      reasoningParts.push(`delay ${delayMs}ms - ${delayReason}`);
     }
 
     const reasoningSummary = reasoningParts.join(', ') || 'proceed with retry';

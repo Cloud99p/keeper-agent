@@ -13,7 +13,11 @@
  * - Account write streaming
  */
 
-import Yellowstone, { CommitmentLevel, SubscribeRequest } from '@triton-one/yellowstone-grpc';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const YellowstoneGrpc = require('@triton-one/yellowstone-grpc');
+const YellowstoneClient = YellowstoneGrpc.default || YellowstoneGrpc;
+
 import { Connection } from '@solana/web3.js';
 import { Config } from './config.js';
 
@@ -66,10 +70,24 @@ export class YellowstoneService {
   constructor(config: Config) {
     this.config = config;
     this.geyserClient = null;
-    this.rpcConnection = new Connection(config.solanaRpcUrl, {
+    
+    // Initialize RPC connection with SolInfra auth headers if token provided
+    const rpcConfig: any = {
       commitment: config.solanaCommitment,
       confirmTransactionInitialTimeout: 60000,
-    });
+    };
+    
+    // Add authorization header for SolInfra RPC
+    if (config.solanaRpcToken) {
+      rpcConfig.httpHeaders = [
+        {
+          key: 'Authorization',
+          value: `Bearer ${config.solanaRpcToken}`,
+        },
+      ];
+    }
+    
+    this.rpcConnection = new Connection(config.solanaRpcUrl, rpcConfig);
     this.slotSubscribers = new Set();
     this.leaderScheduleCache = new Map();
     this.leaderHistory = new Map();
@@ -97,7 +115,7 @@ export class YellowstoneService {
         console.log('[YELLOWSTONE] Devnet detected - using HTTP RPC fallback');
         this.geyserClient = null;
       } else {
-        this.geyserClient = new Yellowstone(this.config.yellowstoneRpcUrl);
+        this.geyserClient = new YellowstoneClient(this.config.yellowstoneRpcUrl);
       }
       console.log('[YELLOWSTONE] Geyser client created');
 

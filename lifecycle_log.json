@@ -1,19 +1,19 @@
 {
-  "generated_at": "2026-05-29T11:27:15.317Z",
-  "total_bundles": 12,
+  "generated_at": "2026-05-30T10:38:14.991Z",
+  "total_bundles": 24,
   "successful": 0,
-  "failed": 12,
-  "agent_analyses": 12,
+  "failed": 24,
+  "agent_analyses": 0,
   "bundles": [
     {
-      "bundle_id": "bundle_mpqu6e5p_1tx4f3_1",
-      "tip_amount": 2438,
-      "submission_slot": 465715020,
-      "blockhash_slot": 465715020,
+      "bundle_id": "bundle_mps7vysj_jofd4g_1",
+      "tip_amount": 10000,
+      "submission_slot": 423139658,
+      "blockhash_slot": 423139658,
       "stages": {
         "submitted": {
-          "timestamp": 1780053976084,
-          "slot": 465715020
+          "timestamp": 1780137470430,
+          "slot": 423139658
         }
       },
       "retry_count": 0,
@@ -21,39 +21,38 @@
       "failure": {
         "occurred": true,
         "stage": "processed",
-        "type": "unknown",
-        "details": "Simulation failed. \nMessage: Transaction simulation failed: Transaction results in an account (1) with insufficient funds for rent. \nLogs: \n[\n  \"Program 11111111111111111111111111111111 invoke [1]\",\n  \"Program 11111111111111111111111111111111 success\",\n  \"Program 11111111111111111111111111111111 invoke [1]\",\n  \"Program 11111111111111111111111111111111 success\"\n]. \nCatch the `SendTransactionError` and call `getLogs()` on it for full details."
+        "type": "fee_too_low",
+        "details": "Simulation failed. \nMessage: Transaction simulation failed: Insufficient funds for fee. \nLogs: \n[]. \nCatch the `SendTransactionError` and call `getLogs()` on it for full details."
       }
     },
     {
-      "bundle_id": "bundle_mpqu6i73_veg28w_2",
-      "tip_amount": 2500,
-      "submission_slot": 465715035,
-      "blockhash_slot": 465715035,
+      "bundle_id": "bundle_mps7vyzm_scd9g0_2",
+      "tip_amount": 0,
+      "submission_slot": 423139658,
+      "blockhash_slot": 423139658,
       "stages": {
         "submitted": {
-          "timestamp": 1780053981466,
-          "slot": 465715035
+          "timestamp": 1780137470434,
+          "slot": 423139658
         }
       },
       "retry_count": 0,
-      "signature": "failed",
       "failure": {
         "occurred": true,
-        "stage": "processed",
+        "stage": "submitted",
         "type": "unknown",
-        "details": "Simulation failed. \nMessage: Transaction simulation failed: Transaction results in an account (1) with insufficient funds for rent. \nLogs: \n[\n  \"Program 11111111111111111111111111111111 invoke [1]\",\n  \"Program 11111111111111111111111111111111 success\",\n  \"Program 11111111111111111111111111111111 invoke [1]\",\n  \"Program 11111111111111111111111111111111 success\"\n]. \nCatch the `SendTransactionError` and call `getLogs()` on it for full details."
+        "details": "leaderQuality is not defined"
       }
     },
     {
-      "bundle_id": "bundle_mpqu6mcj_z0h5b2_3",
-      "tip_amount": 2500,
-      "submission_slot": 465715049,
-      "blockhash_slot": 465715049,
+      "bundle_id": "bundle_mps7w0j8_el2gqj_3",
+      "tip_amount": 10000,
+      "submission_slot": 423139658,
+      "blockhash_slot": 423139658,
       "stages": {
         "submitted": {
-          "timestamp": 1780053986840,
-          "slot": 465715049
+          "timestamp": 1780137472667,
+          "slot": 423139658
         }
       },
       "retry_count": 0,
@@ -61,39 +60,38 @@
       "failure": {
         "occurred": true,
         "stage": "processed",
-        "type": "unknown",
-        "details": "Simulation failed. \nMessage: Transaction simulation failed: Transaction results in an account (1) with insufficient funds for rent. \nLogs: \n[\n  \"Program 11111111111111111111111111111111 invoke [1]\",\n  \"Program 11111111111111111111111111111111 success\",\n  \"Program 11111111111111111111111111111111 invoke [1]\",\n  \"Program 11111111111111111111111111111111 success\"\n]. \nCatch the `SendTransactionError` and call `getLogs()` on it for full details."
+        "type": "fee_too_low",
+        "details": "Simulation failed. \nMessage: Transaction simulation failed: Insufficient funds for fee. \nLogs: \n[]. \nCatch the `SendTransactionError` and call `getLogs()` on it for full details."
       }
     },
     {
-      "bundle_id": "bundle_mpqu6qhu_v6gw52_4",
-      "tip_amount": 2500,
-      "submission_slot": 465715063,
-      "blockhash_slot": 465715063,
+      "bundle_id": "bundle_mps7w0pn_lurcvc_4",
+      "tip_amount": 0,
+      "submission_slot": 423139658,
+      "blockhash_slot": 423139658,
       "stages": {
         "submitted": {
-          "timestamp": 1780053992212,
-          "slot": 465715063
+          "timestamp": 1780137472667,
+          "slot": 423139658
         }
       },
       "retry_count": 0,
-      "signature": "failed",
       "failure": {
         "occurred": true,
-        "stage": "processed",
+        "stage": "submitted",
         "type": "unknown",
-        "details": "Simulation failed. \nMessage: Transaction simulation failed: Transaction results in an account (1) with insufficient funds for rent. \nLogs: \n[\n  \"Program 11111111111111111111111111111111 invoke [1]\",\n  \"Program 11111111111111111111111111111111 success\",\n  \"Program 11111111111111111111111111111111 invoke [1]\",\n  \"Program 11111111111111111111111111111111 success\"\n]. \nCatch the `SendTransactionError` and call `getLogs()` on it for full details."
+        "details": "leaderQuality is not defined"
       }
     },
     {
-      "bundle_id": "bundle_mpqu6un2_3gdvv6_5",
-      "tip_amount": 2500,
-      "submission_slot": 465715077,
-      "blockhash_slot": 465715077,
+      "bundle_id": "bundle_mps7w298_soga0a_5",
+      "tip_amount": 10000,
+      "submission_slot": 423139658,
+      "blockhash_slot": 423139658,
       "stages": {
         "submitted": {
-          "timestamp": 1780053997595,
-          "slot": 465715077
+          "timestamp": 1780137474885,
+          "slot": 423139658
         }
       },
       "retry_count": 0,
@@ -101,39 +99,38 @@
       "failure": {
         "occurred": true,
         "stage": "processed",
-        "type": "unknown",
-        "details": "Simulation failed. \nMessage: Transaction simulation failed: Transaction results in an account (1) with insufficient funds for rent. \nLogs: \n[\n  \"Program 11111111111111111111111111111111 invoke [1]\",\n  \"Program 11111111111111111111111111111111 success\",\n  \"Program 11111111111111111111111111111111 invoke [1]\",\n  \"Program 11111111111111111111111111111111 success\"\n]. \nCatch the `SendTransactionError` and call `getLogs()` on it for full details."
+        "type": "fee_too_low",
+        "details": "Simulation failed. \nMessage: Transaction simulation failed: Insufficient funds for fee. \nLogs: \n[]. \nCatch the `SendTransactionError` and call `getLogs()` on it for full details."
       }
     },
     {
-      "bundle_id": "bundle_mpqu6ysl_lez0tq_6",
-      "tip_amount": 2500,
-      "submission_slot": 465715091,
-      "blockhash_slot": 465715091,
+      "bundle_id": "bundle_mps7w2fa_1sfd8v_6",
+      "tip_amount": 0,
+      "submission_slot": 423139658,
+      "blockhash_slot": 423139658,
       "stages": {
         "submitted": {
-          "timestamp": 1780054002970,
-          "slot": 465715091
+          "timestamp": 1780137474886,
+          "slot": 423139658
         }
       },
       "retry_count": 0,
-      "signature": "failed",
       "failure": {
         "occurred": true,
-        "stage": "processed",
+        "stage": "submitted",
         "type": "unknown",
-        "details": "Simulation failed. \nMessage: Transaction simulation failed: Transaction results in an account (1) with insufficient funds for rent. \nLogs: \n[\n  \"Program 11111111111111111111111111111111 invoke [1]\",\n  \"Program 11111111111111111111111111111111 success\",\n  \"Program 11111111111111111111111111111111 invoke [1]\",\n  \"Program 11111111111111111111111111111111 success\"\n]. \nCatch the `SendTransactionError` and call `getLogs()` on it for full details."
+        "details": "leaderQuality is not defined"
       }
     },
     {
-      "bundle_id": "bundle_mpqu72xv_a7d3xy_7",
-      "tip_amount": 2438,
-      "submission_slot": 465715104,
-      "blockhash_slot": 465715104,
+      "bundle_id": "bundle_mps7w3yv_s2zvei_7",
+      "tip_amount": 10000,
+      "submission_slot": 423139658,
+      "blockhash_slot": 423139658,
       "stages": {
         "submitted": {
-          "timestamp": 1780054008358,
-          "slot": 465715104
+          "timestamp": 1780137477153,
+          "slot": 423139658
         }
       },
       "retry_count": 0,
@@ -141,39 +138,38 @@
       "failure": {
         "occurred": true,
         "stage": "processed",
-        "type": "unknown",
-        "details": "Simulation failed. \nMessage: Transaction simulation failed: Transaction results in an account (1) with insufficient funds for rent. \nLogs: \n[\n  \"Program 11111111111111111111111111111111 invoke [1]\",\n  \"Program 11111111111111111111111111111111 success\",\n  \"Program 11111111111111111111111111111111 invoke [1]\",\n  \"Program 11111111111111111111111111111111 success\"\n]. \nCatch the `SendTransactionError` and call `getLogs()` on it for full details."
+        "type": "fee_too_low",
+        "details": "Simulation failed. \nMessage: Transaction simulation failed: Insufficient funds for fee. \nLogs: \n[]. \nCatch the `SendTransactionError` and call `getLogs()` on it for full details."
       }
     },
     {
-      "bundle_id": "bundle_mpqu775a_vetfyl_8",
-      "tip_amount": 2500,
-      "submission_slot": 465715119,
-      "blockhash_slot": 465715119,
+      "bundle_id": "bundle_mps7w46a_pzli2v_8",
+      "tip_amount": 0,
+      "submission_slot": 423139658,
+      "blockhash_slot": 423139658,
       "stages": {
         "submitted": {
-          "timestamp": 1780054013789,
-          "slot": 465715119
+          "timestamp": 1780137477154,
+          "slot": 423139658
         }
       },
       "retry_count": 0,
-      "signature": "failed",
       "failure": {
         "occurred": true,
-        "stage": "processed",
+        "stage": "submitted",
         "type": "unknown",
-        "details": "Simulation failed. \nMessage: Transaction simulation failed: Transaction results in an account (1) with insufficient funds for rent. \nLogs: \n[\n  \"Program 11111111111111111111111111111111 invoke [1]\",\n  \"Program 11111111111111111111111111111111 success\",\n  \"Program 11111111111111111111111111111111 invoke [1]\",\n  \"Program 11111111111111111111111111111111 success\"\n]. \nCatch the `SendTransactionError` and call `getLogs()` on it for full details."
+        "details": "leaderQuality is not defined"
       }
     },
     {
-      "bundle_id": "bundle_mpqu7bah_0152dw_9",
-      "tip_amount": 2438,
-      "submission_slot": 465715133,
-      "blockhash_slot": 465715133,
+      "bundle_id": "bundle_mps7w5pv_98e8ir_9",
+      "tip_amount": 10000,
+      "submission_slot": 423139658,
+      "blockhash_slot": 423139658,
       "stages": {
         "submitted": {
-          "timestamp": 1780054019184,
-          "slot": 465715133
+          "timestamp": 1780137479428,
+          "slot": 423139658
         }
       },
       "retry_count": 0,
@@ -181,39 +177,38 @@
       "failure": {
         "occurred": true,
         "stage": "processed",
-        "type": "unknown",
-        "details": "Simulation failed. \nMessage: Transaction simulation failed: Transaction results in an account (1) with insufficient funds for rent. \nLogs: \n[\n  \"Program 11111111111111111111111111111111 invoke [1]\",\n  \"Program 11111111111111111111111111111111 success\",\n  \"Program 11111111111111111111111111111111 invoke [1]\",\n  \"Program 11111111111111111111111111111111 success\"\n]. \nCatch the `SendTransactionError` and call `getLogs()` on it for full details."
+        "type": "fee_too_low",
+        "details": "Simulation failed. \nMessage: Transaction simulation failed: Insufficient funds for fee. \nLogs: \n[]. \nCatch the `SendTransactionError` and call `getLogs()` on it for full details."
       }
     },
     {
-      "bundle_id": "bundle_mpqu7fga_06aw6p_10",
-      "tip_amount": 2438,
-      "submission_slot": 465715147,
-      "blockhash_slot": 465715147,
+      "bundle_id": "bundle_mps7w5xh_135cf8_10",
+      "tip_amount": 0,
+      "submission_slot": 423139658,
+      "blockhash_slot": 423139658,
       "stages": {
         "submitted": {
-          "timestamp": 1780054024554,
-          "slot": 465715147
+          "timestamp": 1780137479429,
+          "slot": 423139658
         }
       },
       "retry_count": 0,
-      "signature": "failed",
       "failure": {
         "occurred": true,
-        "stage": "processed",
+        "stage": "submitted",
         "type": "unknown",
-        "details": "Simulation failed. \nMessage: Transaction simulation failed: Transaction results in an account (1) with insufficient funds for rent. \nLogs: \n[\n  \"Program 11111111111111111111111111111111 invoke [1]\",\n  \"Program 11111111111111111111111111111111 success\",\n  \"Program 11111111111111111111111111111111 invoke [1]\",\n  \"Program 11111111111111111111111111111111 success\"\n]. \nCatch the `SendTransactionError` and call `getLogs()` on it for full details."
+        "details": "leaderQuality is not defined"
       }
     },
     {
-      "bundle_id": "bundle_mpqu7jlf_eh3bry_11",
-      "tip_amount": 2438,
-      "submission_slot": 465715161,
-      "blockhash_slot": 465715161,
+      "bundle_id": "bundle_mps7w7h1_2ybma2_11",
+      "tip_amount": 10000,
+      "submission_slot": 423139658,
+      "blockhash_slot": 423139658,
       "stages": {
         "submitted": {
-          "timestamp": 1780054029946,
-          "slot": 465715161
+          "timestamp": 1780137481662,
+          "slot": 423139658
         }
       },
       "retry_count": 0,
@@ -221,19 +216,38 @@
       "failure": {
         "occurred": true,
         "stage": "processed",
-        "type": "unknown",
-        "details": "Simulation failed. \nMessage: Transaction simulation failed: Transaction results in an account (1) with insufficient funds for rent. \nLogs: \n[\n  \"Program 11111111111111111111111111111111 invoke [1]\",\n  \"Program 11111111111111111111111111111111 success\",\n  \"Program 11111111111111111111111111111111 invoke [1]\",\n  \"Program 11111111111111111111111111111111 success\"\n]. \nCatch the `SendTransactionError` and call `getLogs()` on it for full details."
+        "type": "fee_too_low",
+        "details": "Simulation failed. \nMessage: Transaction simulation failed: Insufficient funds for fee. \nLogs: \n[]. \nCatch the `SendTransactionError` and call `getLogs()` on it for full details."
       }
     },
     {
-      "bundle_id": "bundle_mpqu7nr7_99fmf3_12",
-      "tip_amount": 2438,
-      "submission_slot": 465715175,
-      "blockhash_slot": 465715175,
+      "bundle_id": "bundle_mps7w7nj_rpeboy_12",
+      "tip_amount": 0,
+      "submission_slot": 423139658,
+      "blockhash_slot": 423139658,
       "stages": {
         "submitted": {
-          "timestamp": 1780054035314,
-          "slot": 465715175
+          "timestamp": 1780137481663,
+          "slot": 423139658
+        }
+      },
+      "retry_count": 0,
+      "failure": {
+        "occurred": true,
+        "stage": "submitted",
+        "type": "unknown",
+        "details": "leaderQuality is not defined"
+      }
+    },
+    {
+      "bundle_id": "bundle_mps7w974_v8o6di_13",
+      "tip_amount": 10000,
+      "submission_slot": 423139658,
+      "blockhash_slot": 423139658,
+      "stages": {
+        "submitted": {
+          "timestamp": 1780137483891,
+          "slot": 423139658
         }
       },
       "retry_count": 0,
@@ -241,205 +255,224 @@
       "failure": {
         "occurred": true,
         "stage": "processed",
+        "type": "fee_too_low",
+        "details": "Simulation failed. \nMessage: Transaction simulation failed: Insufficient funds for fee. \nLogs: \n[]. \nCatch the `SendTransactionError` and call `getLogs()` on it for full details."
+      }
+    },
+    {
+      "bundle_id": "bundle_mps7w9dg_ibot07_14",
+      "tip_amount": 0,
+      "submission_slot": 423139658,
+      "blockhash_slot": 423139658,
+      "stages": {
+        "submitted": {
+          "timestamp": 1780137483892,
+          "slot": 423139658
+        }
+      },
+      "retry_count": 0,
+      "failure": {
+        "occurred": true,
+        "stage": "submitted",
         "type": "unknown",
-        "details": "Simulation failed. \nMessage: Transaction simulation failed: Transaction results in an account (1) with insufficient funds for rent. \nLogs: \n[\n  \"Program 11111111111111111111111111111111 invoke [1]\",\n  \"Program 11111111111111111111111111111111 success\",\n  \"Program 11111111111111111111111111111111 invoke [1]\",\n  \"Program 11111111111111111111111111111111 success\"\n]. \nCatch the `SendTransactionError` and call `getLogs()` on it for full details."
+        "details": "leaderQuality is not defined"
+      }
+    },
+    {
+      "bundle_id": "bundle_mps7wax1_0ldipp_15",
+      "tip_amount": 10000,
+      "submission_slot": 423139658,
+      "blockhash_slot": 423139658,
+      "stages": {
+        "submitted": {
+          "timestamp": 1780137486116,
+          "slot": 423139658
+        }
+      },
+      "retry_count": 0,
+      "signature": "failed",
+      "failure": {
+        "occurred": true,
+        "stage": "processed",
+        "type": "fee_too_low",
+        "details": "Simulation failed. \nMessage: Transaction simulation failed: Insufficient funds for fee. \nLogs: \n[]. \nCatch the `SendTransactionError` and call `getLogs()` on it for full details."
+      }
+    },
+    {
+      "bundle_id": "bundle_mps7wb38_744lbw_16",
+      "tip_amount": 0,
+      "submission_slot": 423139658,
+      "blockhash_slot": 423139658,
+      "stages": {
+        "submitted": {
+          "timestamp": 1780137486116,
+          "slot": 423139658
+        }
+      },
+      "retry_count": 0,
+      "failure": {
+        "occurred": true,
+        "stage": "submitted",
+        "type": "unknown",
+        "details": "leaderQuality is not defined"
+      }
+    },
+    {
+      "bundle_id": "bundle_mps7wcmt_9v8v5t_17",
+      "tip_amount": 10000,
+      "submission_slot": 423139658,
+      "blockhash_slot": 423139658,
+      "stages": {
+        "submitted": {
+          "timestamp": 1780137488333,
+          "slot": 423139658
+        }
+      },
+      "retry_count": 0,
+      "signature": "failed",
+      "failure": {
+        "occurred": true,
+        "stage": "processed",
+        "type": "fee_too_low",
+        "details": "Simulation failed. \nMessage: Transaction simulation failed: Insufficient funds for fee. \nLogs: \n[]. \nCatch the `SendTransactionError` and call `getLogs()` on it for full details."
+      }
+    },
+    {
+      "bundle_id": "bundle_mps7wcsu_7mu86y_18",
+      "tip_amount": 0,
+      "submission_slot": 423139658,
+      "blockhash_slot": 423139658,
+      "stages": {
+        "submitted": {
+          "timestamp": 1780137488334,
+          "slot": 423139658
+        }
+      },
+      "retry_count": 0,
+      "failure": {
+        "occurred": true,
+        "stage": "submitted",
+        "type": "unknown",
+        "details": "leaderQuality is not defined"
+      }
+    },
+    {
+      "bundle_id": "bundle_mps7wecf_j72b54_19",
+      "tip_amount": 10000,
+      "submission_slot": 423139658,
+      "blockhash_slot": 423139658,
+      "stages": {
+        "submitted": {
+          "timestamp": 1780137490547,
+          "slot": 423139658
+        }
+      },
+      "retry_count": 0,
+      "signature": "failed",
+      "failure": {
+        "occurred": true,
+        "stage": "processed",
+        "type": "fee_too_low",
+        "details": "Simulation failed. \nMessage: Transaction simulation failed: Insufficient funds for fee. \nLogs: \n[]. \nCatch the `SendTransactionError` and call `getLogs()` on it for full details."
+      }
+    },
+    {
+      "bundle_id": "bundle_mps7weib_74d61o_20",
+      "tip_amount": 0,
+      "submission_slot": 423139658,
+      "blockhash_slot": 423139658,
+      "stages": {
+        "submitted": {
+          "timestamp": 1780137490547,
+          "slot": 423139658
+        }
+      },
+      "retry_count": 0,
+      "failure": {
+        "occurred": true,
+        "stage": "submitted",
+        "type": "unknown",
+        "details": "leaderQuality is not defined"
+      }
+    },
+    {
+      "bundle_id": "bundle_mps7wg1w_iuq1ct_21",
+      "tip_amount": 10000,
+      "submission_slot": 423139658,
+      "blockhash_slot": 423139658,
+      "stages": {
+        "submitted": {
+          "timestamp": 1780137492773,
+          "slot": 423139658
+        }
+      },
+      "retry_count": 0,
+      "signature": "failed",
+      "failure": {
+        "occurred": true,
+        "stage": "processed",
+        "type": "fee_too_low",
+        "details": "Simulation failed. \nMessage: Transaction simulation failed: Insufficient funds for fee. \nLogs: \n[]. \nCatch the `SendTransactionError` and call `getLogs()` on it for full details."
+      }
+    },
+    {
+      "bundle_id": "bundle_mps7wg86_nqarkp_22",
+      "tip_amount": 0,
+      "submission_slot": 423139658,
+      "blockhash_slot": 423139658,
+      "stages": {
+        "submitted": {
+          "timestamp": 1780137492774,
+          "slot": 423139658
+        }
+      },
+      "retry_count": 0,
+      "failure": {
+        "occurred": true,
+        "stage": "submitted",
+        "type": "unknown",
+        "details": "leaderQuality is not defined"
+      }
+    },
+    {
+      "bundle_id": "bundle_mps7whrq_gijg4l_23",
+      "tip_amount": 10000,
+      "submission_slot": 423139658,
+      "blockhash_slot": 423139658,
+      "stages": {
+        "submitted": {
+          "timestamp": 1780137494985,
+          "slot": 423139658
+        }
+      },
+      "retry_count": 0,
+      "signature": "failed",
+      "failure": {
+        "occurred": true,
+        "stage": "processed",
+        "type": "fee_too_low",
+        "details": "Simulation failed. \nMessage: Transaction simulation failed: Insufficient funds for fee. \nLogs: \n[]. \nCatch the `SendTransactionError` and call `getLogs()` on it for full details."
+      }
+    },
+    {
+      "bundle_id": "bundle_mps7whxm_jlx34o_24",
+      "tip_amount": 0,
+      "submission_slot": 423139658,
+      "blockhash_slot": 423139658,
+      "stages": {
+        "submitted": {
+          "timestamp": 1780137494986,
+          "slot": 423139658
+        }
+      },
+      "retry_count": 0,
+      "failure": {
+        "occurred": true,
+        "stage": "submitted",
+        "type": "unknown",
+        "details": "leaderQuality is not defined"
       }
     }
   ],
-  "agent_reasoning_log": [
-    {
-      "failure_observed": "unknown failure during processing in block (latency: 156ms)",
-      "contributing_factors": [
-        "Submission latency 156ms exceeded safe threshold - network congestion likely",
-        "Leader quality score 0.50 below average - may need higher tip incentive"
-      ],
-      "confidence": 0.39999999999999997,
-      "decision": {
-        "action": "retry",
-        "tip_adjustment_percent": 0,
-        "blockhash_refresh": false,
-        "delay_ms": 0,
-        "reasoning_summary": "proceed with retry"
-      },
-      "timestamp": 1780053976086,
-      "slot_at_decision": 465715020
-    },
-    {
-      "failure_observed": "unknown failure during processing in block (latency: 146ms)",
-      "contributing_factors": [
-        "Leader quality score 0.50 below average - may need higher tip incentive"
-      ],
-      "confidence": 0.39999999999999997,
-      "decision": {
-        "action": "retry",
-        "tip_adjustment_percent": 0,
-        "blockhash_refresh": false,
-        "delay_ms": 0,
-        "reasoning_summary": "proceed with retry"
-      },
-      "timestamp": 1780053981466,
-      "slot_at_decision": 465715035
-    },
-    {
-      "failure_observed": "unknown failure during processing in block (latency: 140ms)",
-      "contributing_factors": [
-        "Leader quality score 0.50 below average - may need higher tip incentive"
-      ],
-      "confidence": 0.39999999999999997,
-      "decision": {
-        "action": "retry",
-        "tip_adjustment_percent": 0,
-        "blockhash_refresh": false,
-        "delay_ms": 0,
-        "reasoning_summary": "proceed with retry"
-      },
-      "timestamp": 1780053986841,
-      "slot_at_decision": 465715049
-    },
-    {
-      "failure_observed": "unknown failure during processing in block (latency: 143ms)",
-      "contributing_factors": [
-        "Leader quality score 0.50 below average - may need higher tip incentive"
-      ],
-      "confidence": 0.39999999999999997,
-      "decision": {
-        "action": "retry",
-        "tip_adjustment_percent": 0,
-        "blockhash_refresh": false,
-        "delay_ms": 0,
-        "reasoning_summary": "proceed with retry"
-      },
-      "timestamp": 1780053992212,
-      "slot_at_decision": 465715063
-    },
-    {
-      "failure_observed": "unknown failure during processing in block (latency: 148ms)",
-      "contributing_factors": [
-        "Leader quality score 0.50 below average - may need higher tip incentive"
-      ],
-      "confidence": 0.39999999999999997,
-      "decision": {
-        "action": "retry",
-        "tip_adjustment_percent": 0,
-        "blockhash_refresh": false,
-        "delay_ms": 0,
-        "reasoning_summary": "proceed with retry"
-      },
-      "timestamp": 1780053997596,
-      "slot_at_decision": 465715077
-    },
-    {
-      "failure_observed": "unknown failure during processing in block (latency: 143ms)",
-      "contributing_factors": [
-        "Leader quality score 0.50 below average - may need higher tip incentive"
-      ],
-      "confidence": 0.39999999999999997,
-      "decision": {
-        "action": "retry",
-        "tip_adjustment_percent": 0,
-        "blockhash_refresh": false,
-        "delay_ms": 0,
-        "reasoning_summary": "proceed with retry"
-      },
-      "timestamp": 1780054002970,
-      "slot_at_decision": 465715091
-    },
-    {
-      "failure_observed": "unknown failure during processing in block (latency: 141ms)",
-      "contributing_factors": [
-        "Leader quality score 0.50 below average - may need higher tip incentive"
-      ],
-      "confidence": 0.39999999999999997,
-      "decision": {
-        "action": "retry",
-        "tip_adjustment_percent": 0,
-        "blockhash_refresh": false,
-        "delay_ms": 0,
-        "reasoning_summary": "proceed with retry"
-      },
-      "timestamp": 1780054008359,
-      "slot_at_decision": 465715104
-    },
-    {
-      "failure_observed": "unknown failure during processing in block (latency: 143ms)",
-      "contributing_factors": [
-        "Leader quality score 0.50 below average - may need higher tip incentive"
-      ],
-      "confidence": 0.39999999999999997,
-      "decision": {
-        "action": "retry",
-        "tip_adjustment_percent": 0,
-        "blockhash_refresh": false,
-        "delay_ms": 0,
-        "reasoning_summary": "proceed with retry"
-      },
-      "timestamp": 1780054013791,
-      "slot_at_decision": 465715119
-    },
-    {
-      "failure_observed": "unknown failure during processing in block (latency: 151ms)",
-      "contributing_factors": [
-        "Submission latency 151ms exceeded safe threshold - network congestion likely",
-        "Leader quality score 0.50 below average - may need higher tip incentive"
-      ],
-      "confidence": 0.39999999999999997,
-      "decision": {
-        "action": "retry",
-        "tip_adjustment_percent": 0,
-        "blockhash_refresh": false,
-        "delay_ms": 0,
-        "reasoning_summary": "proceed with retry"
-      },
-      "timestamp": 1780054019185,
-      "slot_at_decision": 465715133
-    },
-    {
-      "failure_observed": "unknown failure during processing in block (latency: 141ms)",
-      "contributing_factors": [
-        "Leader quality score 0.50 below average - may need higher tip incentive"
-      ],
-      "confidence": 0.39999999999999997,
-      "decision": {
-        "action": "retry",
-        "tip_adjustment_percent": 0,
-        "blockhash_refresh": false,
-        "delay_ms": 0,
-        "reasoning_summary": "proceed with retry"
-      },
-      "timestamp": 1780054024554,
-      "slot_at_decision": 465715147
-    },
-    {
-      "failure_observed": "unknown failure during processing in block (latency: 138ms)",
-      "contributing_factors": [
-        "Leader quality score 0.50 below average - may need higher tip incentive"
-      ],
-      "confidence": 0.39999999999999997,
-      "decision": {
-        "action": "retry",
-        "tip_adjustment_percent": 0,
-        "blockhash_refresh": false,
-        "delay_ms": 0,
-        "reasoning_summary": "proceed with retry"
-      },
-      "timestamp": 1780054029946,
-      "slot_at_decision": 465715161
-    },
-    {
-      "failure_observed": "unknown failure during processing in block (latency: 143ms)",
-      "contributing_factors": [
-        "Leader quality score 0.50 below average - may need higher tip incentive"
-      ],
-      "confidence": 0.39999999999999997,
-      "decision": {
-        "action": "retry",
-        "tip_adjustment_percent": 0,
-        "blockhash_refresh": false,
-        "delay_ms": 0,
-        "reasoning_summary": "proceed with retry"
-      },
-      "timestamp": 1780054035314,
-      "slot_at_decision": 465715175
-    }
-  ]
+  "agent_reasoning_log": []
 }

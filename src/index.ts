@@ -1,240 +1,151 @@
 /**
- * Solana Transaction Stack - Main Orchestrator
- * 
- * Entry point that orchestrates the full workflow:
- * 1. Initialize Yellowstone gRPC connection
- * 2. Initialize Jito bundle service
- * 3. Submit multiple bundles to generate lifecycle data
- * 4. Handle failures with AI agent reasoning
- * 5. Export lifecycle log
- * 
- * Usage:
- *   npm run dev           # Run once
- *   npm run dev -- --test # Run test mode (fewer bundles)
+ * Solana Transaction Stack - Main Entry Point
+ * Windows-compatible implementation using jito-ts SDK
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import { fileURLToPath } from 'url';
-import 'dotenv/config';
-import { loadConfig } from './config.js';
-import { YellowstoneService } from './yellowstone.js';
-import { LifecycleTracker } from './lifecycle.js';
-import { FailureReasoningAgent } from './ai-agent.js';
-import { JitoService } from './jito.js';
+import dotenv from 'dotenv';
+import { Connection, clusterApiUrl, PublicKey } from '@solana/web3.js';
+import { JitoManager } from './jito-manager.js';
+import { GeyserClient } from './geyser-client.js';
+import { TxBuilder } from './tx-builder.js';
 
-// Get directory name for ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Load environment variables
+dotenv.config();
 
-/**
- * Main orchestrator class
- */
 class SolanaTxStack {
-  private config: any;
-  private yellowstone: YellowstoneService;
-  private lifecycle: LifecycleTracker;
-  private agent: FailureReasoningAgent;
-  private jito: JitoService;
-  private isTestMode: boolean;
+  private connection: Connection;
+  private jitoManager: JitoManager;
+  private geyserClient: GeyserClient;
+  private txBuilder: TxBuilder;
 
-  constructor(isTestMode: boolean = false) {
-    this.isTestMode = isTestMode;
-    this.config = loadConfig();
-    this.yellowstone = new YellowstoneService(this.config);
-    this.lifecycle = new LifecycleTracker(this.config);
-    this.agent = new FailureReasoningAgent(this.config);
-    this.jito = new JitoService(this.config, this.yellowstone, this.lifecycle, this.agent);
+  constructor() {
+    // Initialize Solana connection
+    const rpcUrl = process.env.RPC_URL || clusterApiUrl('mainnet-beta');
+    this.connection = new Connection(rpcUrl, {
+      commitment: process.env.SOLANA_COMMITMENT as any || 'confirmed',
+      wsEndpoint: rpcUrl.replace('https', 'wss')
+    });
+
+    // Initialize components
+    this.jitoManager = new JitoManager(this.connection);
+    this.geyserClient = new GeyserClient();
+    this.txBuilder = new TxBuilder(this.connection);
+
+    console.log('✅ SolanaTxStack initialized');
+    console.log(`   RPC: ${rpcUrl}`);
+    console.log(`   Cluster: ${process.env.SOLANA_CLUSTER || 'mainnet-beta'}`);
   }
 
   /**
-   * Initialize all services
+   * Start all services
    */
-  async initialize(): Promise<void> {
-    console.log('\n' + '='.repeat(60));
-    console.log('SOLANA TRANSACTION STACK - Initializing');
-    console.log('='.repeat(60));
-    console.log('Test mode:', this.isTestMode);
-    console.log('Debug mode:', this.config.debug);
-    console.log('');
+  async start(): Promise<void> {
+    console.log('\n🚀 Starting Solana Transaction Stack...\n');
 
-    // Initialize Yellowstone
-    await this.yellowstone.initialize();
-
-    // Initialize Jito
-    await this.jito.initialize();
-
-    console.log('\n[INIT] All services initialized\n');
-  }
-
-  /**
-   * Run the full workflow
-   */
-  async run(): Promise<void> {
     try {
-      // Determine number of bundles to submit
-      const bundleCount = this.isTestMode ? 3 : 12;
-      console.log(`[RUN] Submitting ${bundleCount} bundles...\n`);
+      // Initialize Jito (bundle submission)
+      await this.jitoManager.initialize();
+      console.log('✅ Jito Manager initialized');
 
-      const results: Array<{
-        bundleId: string;
-        success: boolean;
-        tipAmount: number;
-        error?: string;
-      }> = [];
+      // Initialize Geyser (real-time streaming)
+      await this.geyserClient.connect();
+      console.log('✅ Geyser Client connected');
 
-      // Submit bundles
-      for (let i = 0; i < bundleCount; i++) {
-        console.log(`\n>>> Bundle ${i + 1}/${bundleCount} <<<\n`);
+      // Start monitoring
+      await this.startMonitoring();
 
-        const result = await this.jito.submitBundle();
-        results.push({
-          bundleId: result.bundleId,
-          success: result.success,
-          tipAmount: result.lifecycle?.tip_amount ?? 0,
-          error: result.error,
-        });
-
-        // Delay between bundles to avoid rate limiting
-        if (i < bundleCount - 1) {
-          const delay = this.isTestMode ? 2000 : 5000;
-          console.log(`\n[WAIT] Waiting ${delay}ms before next bundle...\n`);
-          await this.sleep(delay);
-        }
-      }
-
-      // Generate report
-      await this.generateReport(results);
-
-      // Export lifecycle log
-      await this.exportLifecycleLog();
-
-      console.log('\n' + '='.repeat(60));
-      console.log('SOLANA TRANSACTION STACK - Complete');
-      console.log('='.repeat(60));
-
+      console.log('\n✅ All services started successfully!\n');
     } catch (error: any) {
-      console.error('[RUN] Fatal error:', error);
+      console.error('❌ Failed to start services:', error.message);
       throw error;
     }
   }
 
   /**
-   * Generate summary report
+   * Start monitoring loop
    */
-  private async generateReport(
-    results: Array<{ bundleId: string; success: boolean; tipAmount: number; error?: string }>
-  ): Promise<void> {
-    console.log('\n' + '='.repeat(60));
-    console.log('EXECUTION REPORT');
-    console.log('='.repeat(60));
+  private async startMonitoring(): Promise<void> {
+    console.log('📊 Starting monitoring loop...');
 
-    const total = results.length;
-    const successful = results.filter(r => r.success).length;
-    const failed = total - successful;
-    const successRate = ((successful / total) * 100).toFixed(1);
-
-    const tips = results.map(r => r.tipAmount).filter(t => t > 0);
-    const avgTip = tips.length > 0 ? tips.reduce((a, b) => a + b, 0) / tips.length : 0;
-    const minTip = Math.min(...tips, 0);
-    const maxTip = Math.max(...tips, 0);
-
-    console.log(`Total bundles: ${total}`);
-    console.log(`Successful: ${successful} (${successRate}%)`);
-    console.log(`Failed: ${failed}`);
-    console.log('');
-    console.log('Tip Statistics:');
-    console.log(`  Average: ${Math.round(avgTip)} lamports`);
-    console.log(`  Min: ${minTip} lamports`);
-    console.log(`  Max: ${maxTip} lamports`);
-    console.log('');
-
-    // Agent statistics
-    const agentStats = this.agent.getStats();
-    console.log('Agent Statistics:');
-    console.log(`  Total analyses: ${agentStats.totalAnalyses}`);
-    console.log(`  Average confidence: ${agentStats.avgConfidence.toFixed(2)}`);
-    console.log(`  Retry decisions: ${agentStats.retryDecisions}`);
-    console.log(`  Abort decisions: ${agentStats.abortDecisions}`);
-    console.log(`  Wait & retry decisions: ${agentStats.waitAndRetryDecisions}`);
-    console.log('');
-
-    // Latency statistics
-    const latencyStats = this.lifecycle.getLatencyStats();
-    if (latencyStats) {
-      console.log('Latency Statistics:');
-      console.log(`  Avg processed: ${latencyStats.avg_processed_ms}ms`);
-      console.log(`  Avg confirmed: ${latencyStats.avg_confirmed_ms}ms`);
-      console.log(`  Avg finalized: ${latencyStats.avg_finalized_ms}ms`);
-      console.log(`  P95 processed: ${latencyStats.p95_processed_ms}ms`);
-      console.log(`  P95 confirmed: ${latencyStats.p95_confirmed_ms}ms`);
-      console.log('');
-    }
-
-    // Failed bundles with agent reasoning
-    const failedBundles = this.lifecycle.getFailedBundles();
-    if (failedBundles.length > 0) {
-      console.log('Failed Bundles with Agent Reasoning:');
-      for (const bundle of failedBundles) {
-        console.log(`\n  Bundle: ${bundle.bundle_id}`);
-        console.log(`  Failure type: ${bundle.failure?.type}`);
-        console.log(`  Stage: ${bundle.failure?.stage}`);
-        console.log(`  Agent decision: ${bundle.failure?.agent_decision}`);
-        console.log(`  Tip adjustment: ${bundle.failure?.retry_tip_adjustment}%`);
-        console.log(`  Delay: ${bundle.failure?.retry_delay_ms}ms`);
+    // Example: Monitor for opportunities every 5 seconds
+    setInterval(async () => {
+      try {
+        await this.checkOpportunities();
+      } catch (error: any) {
+        console.error('Monitoring error:', error.message);
       }
+    }, 5000);
+  }
+
+  /**
+   * Check for trading/arbitrage opportunities
+   */
+  private async checkOpportunities(): Promise<void> {
+    // Implement your strategy logic here
+    // This is a placeholder for demonstration
+
+    const slot = await this.connection.getSlot();
+    const tipAccount = await this.jitoManager.getNextTipAccount();
+
+    console.log(`[Slot ${slot}] Checking opportunities... Tip: ${tipAccount?.toString().slice(0, 8)}...`);
+  }
+
+  /**
+   * Submit a bundle via Jito
+   */
+  async submitBundle(transactions: Buffer[]): Promise<string | null> {
+    try {
+      const bundleId = await this.jitoManager.submitBundle(transactions);
+      console.log('✅ Bundle submitted:', bundleId);
+      return bundleId;
+    } catch (error: any) {
+      console.error('❌ Bundle submission failed:', error.message);
+      return null;
     }
   }
 
   /**
-   * Export lifecycle log to JSON file
+   * Graceful shutdown
    */
-  private async exportLifecycleLog(): Promise<void> {
-    const logPath = path.resolve(__dirname, '..', this.config.lifecycleLogPath);
-    const bundles = this.lifecycle.exportLog();
+  async shutdown(): Promise<void> {
+    console.log('\n🛑 Shutting down...');
 
-    const logData = {
-      generated_at: new Date().toISOString(),
-      total_bundles: bundles.length,
-      successful: this.lifecycle.getSuccessfulBundles().length,
-      failed: this.lifecycle.getFailedBundles().length,
-      agent_analyses: this.agent.getReasoningLog().length,
-      bundles,
-      agent_reasoning_log: this.agent.getReasoningLog(),
-    };
+    await this.geyserClient.disconnect();
+    console.log('✅ Geyser client disconnected');
 
-    fs.writeFileSync(logPath, JSON.stringify(logData, null, 2));
-    console.log('\n[EXPORT] Lifecycle log written to:', logPath);
-    console.log('[EXPORT] Total entries:', bundles.length);
-    console.log('[EXPORT] Failed entries:', logData.failed);
-    console.log('[EXPORT] Agent reasoning logs:', logData.agent_analyses);
-  }
-
-  /**
-   * Sleep utility
-   */
-  private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    console.log('✅ Shutdown complete\n');
   }
 }
 
-/**
- * Main entry point
- */
+// Main execution
 async function main() {
-  const args = process.argv.slice(2);
-  const isTestMode = args.includes('--test') || args.includes('-t');
+  const stack = new SolanaTxStack();
+
+  // Handle graceful shutdown
+  process.on('SIGINT', async () => {
+    await stack.shutdown();
+    process.exit(0);
+  });
+
+  process.on('SIGTERM', async () => {
+    await stack.shutdown();
+    process.exit(0);
+  });
 
   try {
-    const stack = new SolanaTxStack(isTestMode);
-    await stack.initialize();
-    await stack.run();
-    process.exit(0);
-  } catch (error: any) {
+    await stack.start();
+
+    // Keep the process running
+    console.log('Press Ctrl+C to stop\n');
+  } catch (error) {
     console.error('Fatal error:', error);
     process.exit(1);
   }
 }
 
-// Run if executed directly
-main();
+// Run if this is the main module
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main();
+}
+
+export { SolanaTxStack };

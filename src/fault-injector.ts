@@ -13,14 +13,25 @@
 
 import { Connection, Transaction, SystemProgram, Keypair, PublicKey } from '@solana/web3.js';
 
+export type FaultType = 
+  | 'blockhash_expiry' 
+  | 'fee_too_low' 
+  | 'compute_exceeded' 
+  | 'network_congestion'
+  | 'leader_skip'
+  | 'balance_insufficient'
+  | 'simulation_failure';
+
 export interface FaultScenario {
-  type: 'blockhash_expiry' | 'fee_too_low' | 'compute_exceeded' | 'network_congestion';
+  type: FaultType;
   enabled: boolean;
   parameters: {
     delaySlots?: number;      // For blockhash expiry
+    delayMs?: number;         // For network congestion
     tipOverride?: number;     // For fee too low
     computeLimit?: number;    // For compute exceeded
     skipRate?: number;        // For network congestion
+    simulateSkip?: boolean;   // For leader skip
   };
 }
 
@@ -60,6 +71,32 @@ export class FaultInjector {
       type: 'fee_too_low',
       enabled: true,
       parameters: { tipOverride },
+    };
+  }
+
+  /**
+   * Enable network congestion fault
+   * Simulates high latency
+   */
+  enableNetworkCongestion(delayMs: number = 5000): void {
+    console.log('[FAULT] Enabling network congestion fault (delay: %d ms)', delayMs);
+    this.scenario = {
+      type: 'network_congestion',
+      enabled: true,
+      parameters: { delayMs },
+    };
+  }
+
+  /**
+   * Enable leader skip fault
+   * Simulates submitting during a skip slot
+   */
+  enableLeaderSkip(): void {
+    console.log('[FAULT] Enabling leader skip fault');
+    this.scenario = {
+      type: 'leader_skip',
+      enabled: true,
+      parameters: { simulateSkip: true },
     };
   }
 
@@ -149,6 +186,33 @@ export class FaultInjector {
           transaction: lowTipTx,
           delayMs: 0,
           reason: `fee_too_low_injection:${tipOverride}_lamports`,
+        };
+      }
+
+      case 'network_congestion': {
+        const delayMs = this.scenario.parameters.delayMs || 5000;
+        
+        console.log('[FAULT] Network congestion injection:');
+        console.log('  - Simulating network delay: %d ms', delayMs);
+        console.log('  - This may cause timeout or stale blockhash');
+        
+        return {
+          transaction,
+          delayMs,
+          reason: `network_congestion_injection:${delayMs}ms_delay`,
+        };
+      }
+
+      case 'leader_skip': {
+        console.log('[FAULT] Leader skip injection:');
+        console.log('  - Simulating submission during skip slot');
+        console.log('  - Leader may not include this bundle');
+        
+        // Add delay to simulate waiting for skip slot
+        return {
+          transaction,
+          delayMs: 2000,
+          reason: 'leader_skip_injection:submitting_during_skip',
         };
       }
 
