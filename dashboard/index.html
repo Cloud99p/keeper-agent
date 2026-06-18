@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TX-Stack Live Monitor</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #00d9ff, #00ff88);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header .subtitle {
+            color: #aaa;
+            font-size: 1.1em;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 217, 255, 0.2);
+        }
+
+        .stat-card h3 {
+            color: #888;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .stat-card .value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #00d9ff;
+        }
+
+        .stat-card .label {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .stat-card.success .value { color: #00ff88; }
+        .stat-card.warning .value { color: #ffaa00; }
+        .stat-card.danger .value { color: #ff4444; }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .chart-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .chart-card h3 {
+            margin-bottom: 20px;
+            color: #00d9ff;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .live-feed {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .live-feed h3 {
+            margin-bottom: 20px;
+            color: #00d9ff;
+        }
+
+        .bundle-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #00d9ff;
+            transition: all 0.3s;
+        }
+
+        .bundle-item.success { border-left-color: #00ff88; }
+        .bundle-item.failed { border-left-color: #ff4444; }
+        .bundle-item.pending { border-left-color: #ffaa00; }
+
+        .bundle-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .bundle-id {
+            font-family: monospace;
+            color: #00d9ff;
+            font-size: 0.9em;
+        }
+
+        .bundle-status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        .bundle-status.success { background: rgba(0, 255, 136, 0.2); color: #00ff88; }
+        .bundle-status.failed { background: rgba(255, 68, 68, 0.2); color: #ff4444; }
+        .bundle-status.pending { background: rgba(255, 170, 0, 0.2); color: #ffaa00; }
+
+        .bundle-details {
+            font-size: 0.85em;
+            color: #888;
+        }
+
+        .bundle-details span {
+            margin-right: 15px;
+        }
+
+        .ai-decisions {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .ai-decisions h3 {
+            margin-bottom: 20px;
+            color: #00d9ff;
+        }
+
+        .decision-item {
+            background: rgba(0, 217, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #00d9ff;
+        }
+
+        .decision-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .decision-time {
+            font-size: 0.8em;
+            color: #888;
+        }
+
+        .decision-text {
+            color: #ccc;
+            font-size: 0.9em;
+        }
+
+        .health-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+
+        .health-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s, background-color 0.5s;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+
+        .btn-primary {
+            background: linear-gradient(90deg, #00d9ff, #00ff88);
+            color: #1a1a2e;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 217, 255, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .refresh-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .refresh-indicator .dot {
+            width: 8px;
+            height: 8px;
+            background: #00ff88;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 TX-Stack Live Monitor</h1>
+            <p class="subtitle">Real-time transaction stack monitoring</p>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-primary" onclick="refreshData()">🔄 Refresh</button>
+            <button class="btn btn-secondary" onclick="exportData()">📊 Export</button>
+            <button class="btn btn-secondary" onclick="toggleAutoRefresh()">⏸️ Pause</button>
+            <span class="refresh-indicator">
+                <span class="dot"></span>
+                <span id="lastUpdated">Last updated: Just now</span>
+            </span>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Total Bundles</h3>
+                <div class="value" id="totalBundles">0</div>
+                <div class="label">Submissions</div>
+            </div>
+            <div class="stat-card success">
+                <h3>Success Rate</h3>
+                <div class="value" id="successRate">0%</div>
+                <div class="label">Finalized</div>
+            </div>
+            <div class="stat-card">
+                <h3>Avg Tip</h3>
+                <div class="value" id="avgTip">0</div>
+                <div class="label">Lamports</div>
+            </div>
+            <div class="stat-card">
+                <h3>Network Health</h3>
+                <div class="value" id="networkHealth">0/100</div>
+                <div class="health-bar">
+                    <div class="health-fill" id="healthFill" style="width: 0%; background: #00ff88;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="charts-grid">
+            <div class="chart-card">
+                <h3>📈 Success Rate Over Time</h3>
+                <canvas id="successChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3>💰 Tip Efficiency</h3>
+                <canvas id="tipChart"></canvas>
+            </div>
+        </div>
+
+        <div class="main-grid">
+            <div class="live-feed">
+                <h3>📦 Live Bundle Feed</h3>
+                <div id="bundleList">
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                        </svg>
+                        <p>Run bundle tests to see live feed</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ai-decisions">
+                <h3>🤖 AI Decisions</h3>
+                <div id="aiDecisions">
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/>
+                        </svg>
+                        <p>No AI decisions yet</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let bundles = [];
+        let aiDecisions = [];
+        let successChart, tipChart;
+        let autoRefresh = true;
+        let refreshInterval;
+
+        // Initialize charts
+        function initCharts() {
+            const successCtx = document.getElementById('successChart').getContext('2d');
+            successChart = new Chart(successCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Success Rate',
+                        data: [],
+                        borderColor: '#00d9ff',
+                        backgroundColor: 'rgba(0, 217, 255, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#888' }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#888' }
+                        }
+                    }
+                }
+            });
+
+            const tipCtx = document.getElementById('tipChart').getContext('2d');
+            tipChart = new Chart(tipCtx, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Tip Amount',
+                        data: [],
+                        backgroundColor: [
+                            'rgba(0, 255, 136, 0.7)',
+                            'rgba(0, 217, 255, 0.7)',
+                            'rgba(255, 170, 0, 0.7)',
+                            'rgba(255, 68, 68, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgba(0, 255, 136, 1)',
+                            'rgba(0, 217, 255, 1)',
+                            'rgba(255, 170, 0, 1)',
+                            'rgba(255, 68, 68, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#888' }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#888' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Load data from lifecycle_log.json
+        function loadData() {
+            fetch('lifecycle_log.json')
+                .then(response => response.json())
+                .then(data => {
+                    bundles = data;
+                    updateDashboard();
+                })
+                .catch(error => {
+                    console.log('No lifecycle_log.json yet');
+                });
+        }
+
+        // Update dashboard
+        function updateDashboard() {
+            if (bundles.length === 0) return;
+
+            // Stats
+            const total = bundles.length;
+            const successful = bundles.filter(b => b.status === 'finalized' || b.status === 'confirmed').length;
+            const successRate = total > 0 ? Math.round((successful / total) * 100) : 0;
+            const avgTip = bundles.reduce((sum, b) => sum + (b.tipLamports || 0), 0) / total;
+            const avgHealth = bundles.reduce((sum, b) => sum + (b.healthScore || 50), 0) / total;
+
+            document.getElementById('totalBundles').textContent = total;
+            document.getElementById('successRate').textContent = successRate + '%';
+            document.getElementById('avgTip').textContent = avgTip.toFixed(0);
+            document.getElementById('networkHealth').textContent = avgHealth.toFixed(0) + '/100';
+
+            // Health bar
+            const healthFill = document.getElementById('healthFill');
+            healthFill.style.width = avgHealth + '%';
+            healthFill.style.backgroundColor = avgHealth >= 70 ? '#00ff88' : avgHealth >= 40 ? '#ffaa00' : '#ff4444';
+
+            // Charts
+            const recentBundles = bundles.slice(-10);
+            successChart.data.labels = recentBundles.map((_, i) => i + 1);
+            successChart.data.datasets[0].data = recentBundles.map(b => {
+                if (b.status === 'finalized' || b.status === 'confirmed') return 100;
+                return 50;
+            });
+            successChart.update();
+
+            tipChart.data.labels = recentBundles.map((_, i) => `Bundle ${i + 1}`);
+            tipChart.data.datasets[0].data = recentBundles.map(b => b.tipLamports || 0);
+            tipChart.update();
+
+            // Live feed
+            updateBundleList();
+
+            // Update timestamp
+            document.getElementById('lastUpdated').textContent = 'Last updated: Just now';
+        }
+
+        // Update bundle list
+        function updateBundleList() {
+            const list = document.getElementById('bundleList');
+            
+            if (bundles.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                        </svg>
+                        <p>Run bundle tests to see live feed</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Show last 10 bundles (newest first)
+            const recent = [...bundles].reverse().slice(0, 10);
+            
+            list.innerHTML = recent.map(b => `
+                <div class="bundle-item ${b.status === 'finalized' || b.status === 'confirmed' ? 'success' : b.failureType ? 'failed' : 'pending'}">
+                    <div class="bundle-header">
+                        <span class="bundle-id">#${b.bundleId || b.submittedSlot}</span>
+                        <span class="bundle-status ${b.status === 'finalized' || b.status === 'confirmed' ? 'success' : b.failureType ? 'failed' : 'pending'}">
+                            ${b.status || 'pending'}
+                        </span>
+                    </div>
+                    <div class="bundle-details">
+                        <span>Slot: ${b.submittedSlot || 'N/A'}</span>
+                        <span>Tip: ${b.tipLamports || 0} lamports</span>
+                        <span>Health: ${b.healthScore || 'N/A'}/100</span>
+                        ${b.failureType ? `<span style="color: #ff4444">Error: ${b.failureType}</span>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Refresh data
+        function refreshData() {
+            loadData();
+        }
+
+        // Export data
+        function exportData() {
+            const dataStr = JSON.stringify(bundles, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'tx-stack-data-' + new Date().toISOString().split('T')[0] + '.json';
+            link.click();
+        }
+
+        // Toggle auto-refresh
+        function toggleAutoRefresh() {
+            autoRefresh = !autoRefresh;
+            const btn = document.querySelector('.btn-secondary:last-child');
+            btn.textContent = autoRefresh ? '⏸️ Pause' : '▶️ Resume';
+            
+            if (autoRefresh) {
+                startAutoRefresh();
+            } else {
+                clearInterval(refreshInterval);
+            }
+        }
+
+        function startAutoRefresh() {
+            refreshInterval = setInterval(() => {
+                if (autoRefresh) {
+                    loadData();
+                }
+            }, 5000);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initCharts();
+            loadData();
+            startAutoRefresh();
+        });
+    </script>
+</body>
+</html>

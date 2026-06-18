@@ -10,7 +10,9 @@
     "start": "node dist/index.js",
     "clean": "rm -rf dist",
     "lint": "eslint src/**/*.ts",
-    "test": "vitest"
+    "test": "vitest",
+    "dashboard": "node scripts/dashboard-server.js",
+    "dashboard:open": "node scripts/dashboard-server.js && start http://localhost:3000"
   },
   "keywords": [
     "solana",
