@@ -17,11 +17,9 @@ import * as path from 'path';
 import { simulateBeforeSubmit, formatSimulationResult } from './preflight-simulator.js';
 import { NetworkHealthCalculator } from './network-health.js';
 
-// Jito SDK imports (version-agnostic - no Bundle import)
-import { 
-  SearcherClient,
-  createSearcherClient
-} from 'jito-ts';
+// Jito SDK imports (v4.x namespace exports)
+import { bundle, searcher } from 'jito-ts';
+import type { SearcherClient } from 'jito-ts/dist/sdk/block-engine/searcher';
 
 export interface JitoConfig {
   blockEngineUrl: string;
@@ -61,8 +59,8 @@ export class JitoManager {
       const authKeypair = this.loadKeypair(this.config.authKeypairPath);
       console.log('[JITO] Auth keypair loaded');
 
-      // Create searcher client
-      this.searcherClient = await createSearcherClient({
+      // Create searcher client (jito-ts v4.x namespace API)
+      this.searcherClient = await searcher.createSearcherClient({
         blockEngineUrl: this.config.blockEngineUrl,
         authKeypair: authKeypair
       });
@@ -199,8 +197,9 @@ export class JitoManager {
       
       console.log(`📊 Network Health: ${health.score}/100 (${health.status})`);
 
-      // Step 3: Submit bundle (version-agnostic: pass array directly)
-      const result = await this.searcherClient.sendBundle([txWithBudget]);
+      // Step 3: Submit bundle (jito-ts v4.x: use bundle.Bundle namespace)
+      const bundleObj = new bundle.Bundle([txWithBudget], this.config.bundleTransactionLimit);
+      const result = await this.searcherClient.sendBundle(bundleObj);
       
       console.log('[JITO] Bundle submitted:', result);
       return {
