@@ -171,7 +171,8 @@ A keypair is your identity on Solana. It's a public/private key pair:
 ### Generate
 
 ```bash
-node scripts/generate-keypair.js
+# Use npx tsx for TypeScript files
+npx tsx scripts/generate-keypair.js
 ```
 
 **Expected output:**

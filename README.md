@@ -23,13 +23,25 @@ npm install
 cp .env.example .env
 
 # Generate keypair
-node scripts/generate-keypair.js
+npx tsx scripts/generate-keypair.js
 
 # Test on devnet (auto-funds with airdrop)
-node scripts/test-bundle.js
+npx tsx scripts/test-bundle.js
 ```
 
 **That's it!** You should see a successful transaction on devnet.
+
+---
+
+## 💡 Command Reference
+
+| Command Type | When to Use | Example |
+|--------------|-------------|----------|
+| **`npm run <script>`** | Predefined npm scripts | `npm run dashboard` |
+| **`npx tsx <script.ts>`** | TypeScript files (`.ts`) | `npx tsx scripts/test-bundle.js` |
+| **`node <script.js>`** | JavaScript files (`.js`) only | Not recommended (use tsx) |
+
+**Why `npx tsx`?** This project uses ES modules and TypeScript. `tsx` handles both automatically.
 
 ---
 
@@ -199,6 +211,21 @@ npm run dev
 # Production build
 npm run build
 npm start
+```
+
+### Available Scripts
+
+```bash
+# Dashboard (live monitoring)
+npm run dashboard
+
+# Or dashboard with auto-open browser
+npm run dashboard:open
+
+# Run TypeScript files (use npx tsx)
+npx tsx scripts/test-bundle.js
+npx tsx scripts/test-ai-stress.ts
+npx tsx scripts/generate-report.js
 ```
 
 ---
