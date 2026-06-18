@@ -38,7 +38,17 @@ const server = http.createServer((req, res) => {
     if (req.url === '/lifecycle_log.json') {
         const rootLog = path.join(__dirname, '../lifecycle_log.json');
         if (fs.existsSync(rootLog)) {
-            filePath = rootLog;
+            // Serve the file directly
+            fs.readFile(rootLog, (err, content) => {
+                if (err) {
+                    res.writeHead(500);
+                    res.end('Server Error');
+                } else {
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(content, 'utf-8');
+                }
+            });
+            return;
         } else {
             // Return empty array if file doesn't exist yet
             res.writeHead(200, { 'Content-Type': 'application/json' });
