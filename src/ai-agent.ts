@@ -21,6 +21,9 @@
 
 import { Config } from './config.js';
 import { FailureContext, FailureType, BundleStage } from './lifecycle.js';
+import { DecisionProofChain } from './proof-chain.js';
+import { TransactionKnowledgeGraph } from './knowledge-graph.js';
+import { HebbianTipOptimizer } from './hebbian-optimizer.js';
 
 export interface AgentDecision {
   action: 'retry' | 'abort' | 'wait_and_retry';
@@ -61,10 +64,16 @@ export interface NetworkHealthContext {
 export class FailureReasoningAgent {
   private config: Config;
   private reasoningLog: AgentReasoning[];
+  private proofChain: DecisionProofChain;
+  private knowledgeGraph: TransactionKnowledgeGraph;
+  private hebbianOptimizer: HebbianTipOptimizer;
 
   constructor(config: Config) {
     this.config = config;
     this.reasoningLog = [];
+    this.proofChain = new DecisionProofChain();
+    this.knowledgeGraph = new TransactionKnowledgeGraph();
+    this.hebbianOptimizer = new HebbianTipOptimizer();
   }
 
   /**
@@ -147,6 +156,43 @@ export class FailureReasoningAgent {
 
     console.log('='.repeat(60));
     console.log('[AGENT] Analysis Complete\n');
+
+    // Record decision in cryptographic proof chain
+    await this.proofChain.recordDecision(
+      {
+        bundleId: context.bundleId || 'unknown',
+        failureType: type,
+        stage,
+        submissionSlot,
+        blockhashAge,
+        slotConditions: { tipLamports: context.tipLamports, skipRate: context.skipRate },
+        recentTips: [],
+        submissionLatency: latency,
+      },
+      decision,
+      { contributingFactors, confidence }
+    );
+
+    // Record in knowledge graph for pattern learning
+    await this.knowledgeGraph.recordBundle({
+      bundleId: context.bundleId || `bundle_${Date.now()}`,
+      status: stage,
+      submittedSlot: submissionSlot,
+      tipLamports: context.tipLamports,
+      healthScore: context.healthScore || 50,
+      latencyMs: latency,
+      failureType: type,
+      submittedAt: Date.now(),
+    });
+
+    // Learn from this outcome (Hebbian learning)
+    await this.hebbianOptimizer.learn({
+      tipLamports: context.tipLamports,
+      status: stage,
+      healthScore: context.healthScore || 50,
+      skipRate: context.skipRate || 0.15,
+      leaderQuality: context.leaderQuality || 0.5,
+    });
 
     // Determine if retry should happen
     const shouldRetry = 
@@ -586,6 +632,45 @@ export class FailureReasoningAgent {
       retryDecisions: actions.filter(a => a === 'retry').length,
       abortDecisions: actions.filter(a => a === 'abort').length,
       waitAndRetryDecisions: actions.filter(a => a === 'wait_and_retry').length,
+    };
+  }
+
+  /**
+   * Export proof chain for judges
+   */
+  exportProofChain(): any {
+    return this.proofChain.exportForJudges(10);
+  }
+
+  /**
+   * Generate markdown proof chain report
+   */
+  generateProofChainReport(): string {
+    return this.proofChain.generateMarkdownReport();
+  }
+
+  /**
+   * Get knowledge graph insights
+   */
+  async getKnowledgeInsights() {
+    return await this.knowledgeGraph.extractInsights();
+  }
+
+  /**
+   * Get Hebbian learning insights
+   */
+  getHebbianInsights() {
+    return this.hebbianOptimizer.getInsights();
+  }
+
+  /**
+   * Get learning statistics
+   */
+  getLearningStats() {
+    return {
+      knowledgeGraph: this.knowledgeGraph.getStats(),
+      hebbianOptimizer: this.hebbianOptimizer.getStats(),
+      proofChain: this.proofChain.getStats(),
     };
   }
 }

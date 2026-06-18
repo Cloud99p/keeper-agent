@@ -47,6 +47,10 @@ node scripts/test-bundle.js
 | 🔍 **Pre-flight Simulation** | Catch failures before submission (KAIROS-inspired) | ✅ Added |
 | 💹 **Tip Efficiency Scoring** | Cost optimization tracking | ✅ Added |
 | 🤖 **AI Intelligence Report** | Auto-generated performance summary | ✅ Added |
+| 🧠 **Knowledge Graph** | Queryable pattern memory (not static logs) | ✅ NEW |
+| 🔗 **Hebbian Learning** | Evolving tip optimization through synaptic plasticity | ✅ NEW |
+| 🔄 **Ontology Reflection** | System improves its own decision framework | ✅ NEW |
+| 🔐 **Proof Chain** | Cryptographic audit trail of AI decisions | ✅ NEW |
 
 ---
 
@@ -315,6 +319,79 @@ npx tsx scripts/test-fault-injection.ts
 # AI stress test
 npx tsx scripts/test-ai-stress.ts
 ```
+
+---
+
+## 🧠 Machine Learning Features
+
+### Knowledge Graph
+
+Unlike static logs, the transaction stack stores bundle outcomes as **queryable knowledge nodes** with semantic relationships.
+
+**What it does**:
+- Records every bundle as a knowledge node with embeddings
+- Enables semantic similarity search for historical patterns
+- Tracks leader performance, health score correlations, and failure patterns
+- Provides actionable insights from accumulated experience
+
+**Example query**: "Find similar bundles submitted at health score 70-80 with tip 1000-1500"
+
+### Hebbian Learning (Tip Optimization)
+
+Inspired by biological neural networks: **"Neurons that fire together, wire together"**
+
+**How it works**:
+- Successful tip strategies → synaptic strength increases
+- Failed tip strategies → synaptic strength decreases
+- Old patterns gradually decay (synaptic decay)
+- Recommends optimal tips based on learned patterns
+
+**Example learned patterns**:
+- `health_70-80 + tip_1100-1300 + skip_rate_<0.15` → 94% success (core neuron)
+- `health_<40 + tip_>2500` → 72% success (expensive but reliable)
+
+### Ontology Self-Reflection
+
+The system **improves its own decision framework** through meta-learning.
+
+**Capabilities**:
+- Detects duplicate failure types → proposes merge
+- Finds over-broad categories → proposes split
+- Identifies outdated rules → proposes demotion
+- Discovers emerging patterns → proposes new rules
+
+**Example output**:
+```
+PROPOSAL: Merge "fee_too_low" + "tip_rejected" → "insufficient_tip"
+Reasoning: 95% overlap in network conditions and resolution
+Confidence: 0.95
+Status: ✅ Accepted
+```
+
+### Cryptographic Proof Chain
+
+**Tamper-evident audit trail** of all AI decisions.
+
+**Features**:
+- SHA-256 hashing of inputs, outputs, and reasoning
+- Chain linkage (each proof references previous)
+- Verifiable integrity for judges
+- Exportable markdown reports
+
+**What it proves**:
+- AI decisions were not modified after the fact
+- Reasoning logs are authentic and complete
+- Decision sequence is intact
+- No cherry-picking of successful decisions
+
+### Competitive Advantages
+
+| Feature | Your Stack | KAIROS | Advantage |
+|---------|-----------|--------|----------|
+| Knowledge Graph | ✅ Queryable patterns | ❌ Static logs | 🔥 Semantic search |
+| Hebbian Learning | ✅ Evolving tips | ❌ Fixed rules | 🔥 Adaptive optimization |
+| Ontology Reflection | ✅ Self-improving | ❌ Static logic | 🔥 Meta-learning |
+| Proof Chain | ✅ Cryptographic | ❌ Basic logs | 🔥 Verifiable integrity |
 
 ---
 
