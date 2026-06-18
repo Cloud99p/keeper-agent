@@ -365,6 +365,24 @@ export class LifecycleTracker {
   }
 
   /**
+   * Save lifecycle log to file
+   */
+  async saveToFile(filePath: string): Promise<void> {
+    const fs = await import('fs');
+    const bundles = this.getAllBundles();
+    const logData = {
+      generated_at: new Date().toISOString(),
+      total_bundles: bundles.length,
+      successful: bundles.filter(b => !b.failure).length,
+      failed: bundles.filter(b => b.failure).length,
+      agent_analyses: bundles.filter(b => b.failure?.agent_reasoning).length,
+      bundles: bundles
+    };
+    fs.writeFileSync(filePath, JSON.stringify(logData, null, 2));
+    console.log(`[LIFECYCLE] Saved ${bundles.length} bundles to ${filePath}`);
+  }
+
+  /**
    * Calculate latency statistics
    */
   getLatencyStats(): {

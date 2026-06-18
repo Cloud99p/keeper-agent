@@ -62,6 +62,14 @@ async function runStressTest() {
   } catch (error: any) {
     console.error('[FATAL] Test failed:', error.message);
   } finally {
+    // Save lifecycle log to file
+    try {
+      await lifecycle.saveToFile('./lifecycle_log.json');
+      console.log('\n✅ Lifecycle log saved to lifecycle_log.json');
+    } catch (saveError: any) {
+      console.error('❌ Failed to save lifecycle log:', saveError.message);
+    }
+    
     console.log('\n================================================================================');
     console.log('STRESS TEST COMPLETE');
     console.log('================================================================================');
