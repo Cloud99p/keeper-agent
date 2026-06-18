@@ -39,7 +39,7 @@ node scripts/test-bundle.js
 |---------|-------------|--------|
 | 🎁 **Jito Bundles** | MEV-protected atomic bundle submission | ✅ Production |
 | 📡 **Yellowstone gRPC** | Real-time slot/leader streaming (400ms advantage) | ✅ Production |
-| 🤖 **AI Failure Agent** | Autonomous retry decisions with confidence scoring | ✅ Tested |
+| 🤖 **AI Failure Agent** | Autonomous retry (DeepSeek/Qwen) with confidence scoring | ✅ Tested |
 | 💰 **Dynamic Tips** | Triple-signal calculation from on-chain data | ✅ Production |
 | 📊 **Lifecycle Tracking** | 4-stage monitoring (submitted→finalized) | ✅ Production |
 | 🪟 **Windows Native** | No WSL required, works on all platforms | ✅ Tested |
@@ -270,6 +270,8 @@ MIN_TIP_LAMPORTS=10000
 ## 🤖 AI Failure Agent
 
 The AI agent autonomously analyzes transaction failures and makes retry decisions.
+
+**AI Model**: DeepSeek (deepseek-chat/deepseek-reasoner) or Qwen via API
 
 ### How It Works
 

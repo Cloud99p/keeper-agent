@@ -264,7 +264,7 @@ interface LifecycleEntry {
 | `timeout` | Confirmation timeout | Wait and retry, refresh if old |
 | `unknown` | Unclassified failure | +10-15% tip, 500ms delay |
 
-**AI Model**: Qwen3.5-397B (397 billion parameters)
+**AI Model**: DeepSeek (deepseek-chat/deepseek-reasoner) or Qwen via API
 
 **Example Reasoning Output**:
 ```json
@@ -442,9 +442,10 @@ faultInjector.enable('blockhash_expiry', { delaySlots: 160 });
 4. **Not hardcoded**: Learns from data, not if-else rules
 
 **Implementation**:
-- Model: Qwen3.5-397B (397B parameters)
+- Model: DeepSeek (deepseek-chat/deepseek-reasoner) or Qwen via API
 - Input: Failure context, slot conditions, tip data
 - Output: Retry parameters (tip, delay, blockhash refresh)
+- Confidence: 0.0-1.0 scoring based on signal clarity
 
 ---
 
