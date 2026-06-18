@@ -1,0 +1,60 @@
+MIT License
+
+Copyright (c) 2026 [Your Name]
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+## ML Enhanced Edition Notice
+
+This tx-stack repository includes ML-enhanced components powered by Omnilearn Agent Framework:
+
+- `src/knowledge-graph.ts`
+- `src/hebbian-optimizer.ts`
+- `src/ontology-reflection.ts`
+- `src/proof-chain.ts`
+
+**These ML components are subject to additional licensing terms:**
+
+- **Personal/Academic/Bounty Use**: FREE (this MIT license applies)
+- **Commercial Deployment**: Requires Omnilearn Commercial License
+- **SaaS/Managed Services**: Requires Omnilearn Commercial License
+- **Resale/Redistribution**: Requires Omnilearn Commercial License
+
+For commercial licensing, see `LICENSE-COMMERCIAL` or contact [your-email@example.com].
+
+**Omnilearn Agent Framework** © 2026 [Your Name] - AGPL v3  
+**Commercial Licenses**: $5,000-$50,000 (one-time) or $5,000/month (SaaS)
+
+---
+
+## Quick License Guide
+
+| Use Case | License Required | Cost |
+|----------|-----------------|------|
+| Personal projects | MIT (this file) | FREE |
+| Open-source | MIT (this file) | FREE |
+| Academic research | MIT (this file) | FREE |
+| Bounty submissions | MIT (this file) | FREE |
+| Startup MVP | Omnilearn Commercial | $5,000 |
+| Enterprise production | Omnilearn Commercial | $15,000-$50,000 |
+| SaaS offering | Omnilearn SaaS | $5,000/month |
+
+**Questions?** Contact [your-email@example.com]

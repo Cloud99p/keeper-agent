@@ -4,7 +4,18 @@
  * Stores bundle outcomes as queryable knowledge nodes with semantic relationships.
  * Unlike static logs, this enables pattern discovery and similarity-based retrieval.
  * 
- * Inspired by Omnilearn Agent's knowledge graph architecture
+ * @module tx-stack/ml-enhanced
+ * @author [Your Name]
+ * @license MIT (tx-stack core) - ML components powered by Omnilearn
+ * 
+ * ML COMPONENT NOTICE:
+ * This file is part of the ML Enhanced Edition of tx-stack.
+ * Powered by Omnilearn Agent Framework © 2026 [Your Name] - AGPL v3
+ * Commercial use requires Omnilearn commercial license.
+ * See: LICENSE-COMMERCIAL or contact [your-email@example.com]
+ * 
+ * Free for: personal, academic, open-source, and bounty submissions
+ * Commercial deployment requires Omnilearn license ($5K-$50K)
  */
 
 import { createHash } from 'crypto';

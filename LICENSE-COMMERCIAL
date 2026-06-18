@@ -1,0 +1,306 @@
+# Omnilearn Commercial License
+
+**Last Updated**: June 18, 2026  
+**Copyright**: © 2026 [Your Name]. All Rights Reserved.
+
+---
+
+## 📋 Summary
+
+This license governs the **commercial use** of Omnilearn Agent Framework and its derivative works, including ML components in the tx-stack project (knowledge-graph.ts, hebbian-optimizer.ts, ontology-reflection.ts, proof-chain.ts).
+
+**Short version**:
+- ✅ Free for personal, academic, open-source, and bounty submissions
+- ✅ Free for internal company use (non-commercial)
+- ❌ Commercial deployment requires paid license
+- ❌ SaaS/managed services require paid license
+- ❌ Resale or redistribution requires paid license
+
+---
+
+## 🎯 Permitted Uses (No License Required)
+
+You may use Omnilearn and tx-stack ML components **without a commercial license** for:
+
+1. **Personal Projects**
+   - Learning, experimentation, portfolio pieces
+   - Non-commercial GitHub repositories
+   - Personal automation tools
+
+2. **Academic & Research**
+   - University courses
+   - Research papers
+   - Open-source academic projects
+
+3. **Bounty Submissions**
+   - Superteam.fun and similar platforms
+   - Hackathon submissions
+   - Prize-based competitions
+
+4. **Open-Source Projects**
+   - MIT/Apache/GPL licensed projects
+   - Community-driven initiatives
+   - Non-commercial tools
+
+5. **Internal Testing**
+   - Proof-of-concept development
+   - Internal tooling (not customer-facing)
+   - Evaluation and benchmarking
+
+---
+
+## 🚫 Prohibited Uses (License Required)
+
+You **MUST obtain a commercial license** for:
+
+1. **Commercial Products**
+   - Selling software that incorporates Omnilearn
+   - Integrating Omnilearn into paid products
+   - Commercial SaaS offerings
+
+2. **Managed Services**
+   - Offering Omnilearn-powered services to clients
+   - Consulting engagements using Omnilearn
+   - API-as-a-Service with Omnilearn components
+
+3. **Enterprise Deployment**
+   - Production systems serving paying customers
+   - High-volume commercial applications
+   - Revenue-generating infrastructure
+
+4. **Redistribution**
+   - Selling Omnilearn or derivatives
+   - Including in commercial SDKs
+   - White-label offerings
+
+5. **Competitive Products**
+   - Building ML framework competitors
+   - Reverse engineering for commercial gain
+   - Extracting algorithms for resale
+
+---
+
+## 💰 Commercial License Tiers
+
+### Tier 1: Startup License
+**Price**: $5,000 one-time  
+**For**: Companies < $1M ARR, < 10 employees
+
+**Includes**:
+- Unlimited Omnilearn usage
+- tx-stack ML components
+- 1 year updates
+- Email support
+
+---
+
+### Tier 2: Growth License
+**Price**: $15,000 one-time  
+**For**: Companies $1M-$10M ARR, 10-50 employees
+
+**Includes**:
+- Everything in Startup
+- Priority support
+- Custom integration help
+- 2 years updates
+
+---
+
+### Tier 3: Enterprise License
+**Price**: $50,000 one-time  
+**For**: Companies > $10M ARR, 50+ employees
+
+**Includes**:
+- Everything in Growth
+- Unlimited deployments
+- On-premise support
+- Custom feature requests
+- Lifetime updates
+- SLA guarantee
+
+---
+
+### Tier 4: SaaS License
+**Price**: $5,000/month or $50,000/year  
+**For**: SaaS providers offering Omnilearn-powered services
+
+**Includes**:
+- Unlimited customer deployments
+- White-label rights
+- Marketing support
+- Priority feature requests
+- Revenue sharing options
+
+---
+
+### Tier 5: Unlimited License
+**Price**: $150,000 one-time  
+**For**: Large enterprises wanting full ownership
+
+**Includes**:
+- Everything in Enterprise
+- Source code escrow
+- Patent rights (non-exclusive)
+- Acquisition option discussion
+- Direct founder access
+
+---
+
+## 📝 License Terms
+
+### 1. Grant of License
+
+Subject to payment and compliance, Licensor grants Licensee:
+- Non-exclusive, non-transferable right to use Omnilearn
+- Right to modify for internal use
+- Right to deploy in production environments
+
+### 2. Restrictions
+
+Licensee **MAY NOT**:
+- Sublicense, sell, or redistribute Omnilearn
+- Remove copyright notices
+- Use for illegal purposes
+- Reverse engineer for competitive analysis
+- Build competing ML frameworks using Omnilearn IP
+
+### 3. Attribution
+
+Licensee **MUST**:
+- Include copyright notice in all copies
+- Attribute Omnilearn in documentation
+- Notify Licensor of commercial deployment
+
+### 4. Warranty Disclaimer
+
+**OMNILEARN IS PROVIDED "AS IS"** without warranty of any kind. Licensor disclaims all warranties, express or implied.
+
+### 5. Limitation of Liability
+
+In no event shall Licensor be liable for any damages arising from use of Omnilearn, including lost profits or data.
+
+### 6. Termination
+
+License terminates automatically if:
+- Licensee breaches terms
+- Licensee fails to pay fees
+- Licensee initiates patent litigation
+
+### 7. Governing Law
+
+This license is governed by laws of [Your Jurisdiction].
+
+---
+
+## 🔒 Compliance & Enforcement
+
+### How We Detect Violations
+
+- GitHub scanning for unauthorized commercial use
+- Customer reports
+- Competitive intelligence
+- Code similarity analysis
+
+### Consequences of Violation
+
+1. **First Offense**: Cease & desist letter
+2. **Second Offense**: Legal action + damages
+3. **Willful Violation**: Triple damages + legal fees
+
+### Voluntary Compliance Program
+
+If you discover unlicensed commercial use:
+1. Contact us immediately
+2. Purchase appropriate license
+3. **No penalties** (good faith compliance)
+
+---
+
+## 📧 Contact & Licensing
+
+**For commercial licenses, contact**:
+
+- **Email**: [your-email@example.com]
+- **Twitter**: [@yourhandle]
+- **Website**: [omnilearn.dev] (coming soon)
+- **Discord**: [your-discord]
+
+**Response Time**: 24-48 hours
+
+---
+
+## ❓ FAQ
+
+### Q: Can I use Omnilearn for my startup's MVP?
+**A**: Yes! Startup License ($5K) covers MVP and early production.
+
+### Q: What if I can't afford a license yet?
+**A**: Contact us. We offer revenue-sharing and deferred payment for promising startups.
+
+### Q: Can I modify Omnilearn for my needs?
+**A**: Yes, modifications allowed for internal use. Cannot redistribute modified versions.
+
+### Q: Do I need a license for my open-source project?
+**A**: No! Open-source use is free under AGPL v3.
+
+### Q: What happens if I raise funding after getting Startup License?
+**A**: Upgrade to appropriate tier within 90 days of funding round.
+
+### Q: Can I use Omnilearn in multiple projects?
+**A**: Yes! License covers all projects within your organization.
+
+### Q: Do you offer discounts for nonprofits/education?
+**A**: Yes! 50% discount for registered nonprofits and educational institutions.
+
+---
+
+## 🎯 Why Pay for a License?
+
+Your license fee supports:
+
+1. **Active Development**
+   - New features and improvements
+   - Bug fixes and security patches
+   - Documentation and tutorials
+
+2. **Support**
+   - Email/Slack support
+   - Integration assistance
+   - Custom feature requests
+
+3. **Ecosystem**
+   - Community building
+   - Events and workshops
+   - Open-source grants
+
+4. **Innovation**
+   - Research and development
+   - Patent filings
+   - Competitive moat
+
+---
+
+## 🏆 License Benefits
+
+Beyond legal compliance, commercial licensees get:
+
+- ✅ **Priority Support**: Skip the queue
+- ✅ **Feature Input**: Vote on roadmap
+- ✅ **Case Studies**: Co-marketing opportunities
+- ✅ **Early Access**: Beta features before release
+- ✅ **Network**: Access to other licensees
+- ✅ **Credibility**: "Powered by Omnilearn" badge
+
+---
+
+## 📄 Related Licenses
+
+- **Omnilearn Core**: AGPL v3 (open-source)
+- **tx-stack Core**: MIT (open-source)
+- **tx-stack ML Components**: This Commercial License
+
+---
+
+*This license is subject to change. Licensees locked in at purchase terms.*
+
+**© 2026 [Your Name]. All Rights Reserved.**

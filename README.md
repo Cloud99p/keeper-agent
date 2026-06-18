@@ -395,6 +395,50 @@ Status: ✅ Accepted
 
 ---
 
+## 📜 Licensing
+
+### Dual License Structure
+
+**tx-stack Core**: MIT License (FREE for all uses)
+
+**ML Enhanced Components**: Powered by Omnilearn Agent Framework
+- `src/knowledge-graph.ts`
+- `src/hebbian-optimizer.ts`
+- `src/ontology-reflection.ts`
+- `src/proof-chain.ts`
+
+### What You Can Do (FREE)
+
+✅ **Personal projects** - Learn, experiment, build portfolio  
+✅ **Open-source** - Use in MIT/Apache/GPL projects  
+✅ **Academic** - Research, courses, papers  
+✅ **Bounty submissions** - Superteam.fun, hackathons  
+✅ **Internal testing** - PoC, evaluation, benchmarking  
+
+### What Requires Commercial License
+
+❌ **Commercial products** - Selling software with ML components  
+❌ **SaaS/Managed services** - Offering as paid service  
+❌ **Enterprise deployment** - Production for paying customers  
+❌ **Resale** - Including in commercial SDKs  
+
+### Commercial License Tiers
+
+| Tier | Price | For |
+|------|-------|-----|
+| **Startup** | $5,000 | < $1M ARR, < 10 employees |
+| **Growth** | $15,000 | $1M-$10M ARR, 10-50 employees |
+| **Enterprise** | $50,000 | > $10M ARR, 50+ employees |
+| **SaaS** | $5,000/month | SaaS providers |
+
+**Contact**: [your-email@example.com] for licensing inquiries
+
+**Why License?** Your fee supports active development, priority support, custom features, and the Omnilearn ecosystem.
+
+See `LICENSE-COMMERCIAL` for full terms.
+
+---
+
 ## 🛡️ Security
 
 ### Best Practices
