@@ -482,27 +482,39 @@
 
         // Load data from lifecycle_log.json
         function loadData() {
-            // Try both root and dashboard folder
-            fetch('../lifecycle_log.json')
-                .then(response => response.json())
+            // Fetch from server root (server handles routing to root or dashboard folder)
+            fetch('/lifecycle_log.json')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('HTTP ' + response.status);
+                    }
+                    return response.json();
+                })
                 .then(data => {
-                    bundles = data;
+                    console.log('Loaded lifecycle data:', data.bundles?.length || 0, 'bundles');
+                    bundles = data.bundles || [];
                     updateDashboard();
                 })
                 .catch(error => {
-                    console.log('No lifecycle_log.json yet');
+                    console.log('No lifecycle_log.json yet:', error.message);
                 });
         }
 
         // Update dashboard
         function updateDashboard() {
-            if (bundles.length === 0) return;
+            if (!bundles || bundles.length === 0) {
+                console.log('No bundles to display');
+                return;
+            }
+
+            console.log('Updating dashboard with', bundles.length, 'bundles');
 
             // Stats
             const total = bundles.length;
-            const successful = bundles.filter(b => b.status === 'finalized' || b.status === 'confirmed').length;
+            // Check for failure property (our format) or status property (old format)
+            const successful = bundles.filter(b => b.stages?.finalized || b.stages?.confirmed || b.status === 'finalized' || b.status === 'confirmed').length;
             const successRate = total > 0 ? Math.round((successful / total) * 100) : 0;
-            const avgTip = bundles.reduce((sum, b) => sum + (b.tipLamports || 0), 0) / total;
+            const avgTip = bundles.reduce((sum, b) => sum + (b.tip_amount || b.tipLamports || 0), 0) / total;
             const avgHealth = bundles.reduce((sum, b) => sum + (b.healthScore || 50), 0) / total;
 
             document.getElementById('totalBundles').textContent = total;
@@ -554,22 +566,30 @@
             // Show last 10 bundles (newest first)
             const recent = [...bundles].reverse().slice(0, 10);
             
-            list.innerHTML = recent.map(b => `
-                <div class="bundle-item ${b.status === 'finalized' || b.status === 'confirmed' ? 'success' : b.failureType ? 'failed' : 'pending'}">
-                    <div class="bundle-header">
-                        <span class="bundle-id">#${b.bundleId || b.submittedSlot}</span>
-                        <span class="bundle-status ${b.status === 'finalized' || b.status === 'confirmed' ? 'success' : b.failureType ? 'failed' : 'pending'}">
-                            ${b.status || 'pending'}
-                        </span>
+            list.innerHTML = recent.map(b => {
+                // Determine status from stages or failure
+                const isFinalized = b.stages?.finalized || b.status === 'finalized';
+                const isConfirmed = b.stages?.confirmed || b.status === 'confirmed';
+                const hasFailure = b.failure || b.failureType;
+                const bundleStatus = isFinalized ? 'finalized' : isConfirmed ? 'confirmed' : hasFailure ? 'failed' : 'pending';
+                const bundleClass = isFinalized || isConfirmed ? 'success' : hasFailure ? 'failed' : 'pending';
+                
+                return `
+                    <div class="bundle-item ${bundleClass}">
+                        <div class="bundle-header">
+                            <span class="bundle-id">#${b.bundle_id || b.bundleId || 'N/A'}</span>
+                            <span class="bundle-status ${bundleClass}">
+                                ${bundleStatus}
+                            </span>
+                        </div>
+                        <div class="bundle-details">
+                            <span>Slot: ${b.submission_slot || b.submittedSlot || 'N/A'}</span>
+                            <span>Tip: ${b.tip_amount || b.tipLamports || 0} lamports</span>
+                            ${b.failure?.type ? `<span style="color: #ff4444">Error: ${b.failure.type}</span>` : ''}
+                        </div>
                     </div>
-                    <div class="bundle-details">
-                        <span>Slot: ${b.submittedSlot || 'N/A'}</span>
-                        <span>Tip: ${b.tipLamports || 0} lamports</span>
-                        <span>Health: ${b.healthScore || 'N/A'}/100</span>
-                        ${b.failureType ? `<span style="color: #ff4444">Error: ${b.failureType}</span>` : ''}
-                    </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         // Refresh data
