@@ -33,6 +33,11 @@ const server = http.createServer((req, res) => {
 
     // Default to index.html
     let filePath = path.join(DASHBOARD_DIR, req.url === '/' ? 'index.html' : req.url);
+    
+    // Special case: lifecycle_log.json is in root folder
+    if (req.url === '/lifecycle_log.json') {
+        filePath = path.join(__dirname, '../lifecycle_log.json');
+    }
 
     // Security: Prevent directory traversal
     if (!filePath.startsWith(DASHBOARD_DIR)) {
