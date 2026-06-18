@@ -221,16 +221,16 @@ Think of it like:
 
 ## 📧 Contact for Licensing
 
-**Email**: [your-email@example.com]  
-**Twitter**: [@yourhandle]  
-**Discord**: [your-discord]  
+**Email**: emmanuelhosea09@gmail.com  
+**Twitter**: @Sinistercloud20  
+**Discord**: Cloudyboo12  
 **Response Time**: 24-48 hours
 
 **Inquiry Template**:
 ```
 Subject: Omnilearn Commercial License Inquiry
 
-Hi! I'm interested in licensing Omnilearn for:
+Hi Emmanuel! I'm interested in licensing Omnilearn for:
 
 Company: [Your Company]
 Use Case: [Brief description]
@@ -305,4 +305,4 @@ Discover unlicensed use? Contact us within 30 days:
 
 *This guide is for informational purposes. See LICENSE-COMMERCIAL for binding terms.*
 
-**© 2026 [Your Name]. All Rights Reserved.**
+**© 2026 Emmanuel Nenpan Hosea. All Rights Reserved.**

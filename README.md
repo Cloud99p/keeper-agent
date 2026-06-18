@@ -431,7 +431,7 @@ Status: ✅ Accepted
 | **Enterprise** | $50,000 | > $10M ARR, 50+ employees |
 | **SaaS** | $5,000/month | SaaS providers |
 
-**Contact**: [your-email@example.com] for licensing inquiries
+**Contact**: emmanuelhosea09@gmail.com for licensing inquiries
 
 **Why License?** Your fee supports active development, priority support, custom features, and the Omnilearn ecosystem.
 
