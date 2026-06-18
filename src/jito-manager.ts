@@ -18,10 +18,8 @@ import { simulateBeforeSubmit, formatSimulationResult } from './preflight-simula
 import { NetworkHealthCalculator } from './network-health.js';
 
 // Jito SDK imports
-import { 
-  SearcherClient,
-  createSearcherClient
-} from 'jito-ts';
+import jito from 'jito-ts';
+const { searcher } = jito;
 
 export interface JitoConfig {
   blockEngineUrl: string;
@@ -61,8 +59,8 @@ export class JitoManager {
       const authKeypair = this.loadKeypair(this.config.authKeypairPath);
       console.log('[JITO] Auth keypair loaded');
 
-      // Create searcher client
-      this.searcherClient = await createSearcherClient({
+      // Create searcher client (jito-ts v3.x API)
+      this.searcherClient = await searcher.createSearcherClient({
         blockEngineUrl: this.config.blockEngineUrl,
         authKeypair: authKeypair
       });
