@@ -18,10 +18,9 @@ import { simulateBeforeSubmit, formatSimulationResult } from './preflight-simula
 import { NetworkHealthCalculator } from './network-health.js';
 
 // Jito SDK imports
-import { 
-  SearcherClient,
-  createSearcherClient
-} from 'jito-ts';
+import { Bundle } from 'jito-ts/dist/sdk/block-engine/types';
+import { SearcherClient } from 'jito-ts/dist/sdk/block-engine/searcher';
+import { createSearcherClient } from 'jito-ts/dist/sdk/block-engine/searcher';
 
 export interface JitoConfig {
   blockEngineUrl: string;
@@ -61,8 +60,8 @@ export class JitoManager {
       const authKeypair = this.loadKeypair(this.config.authKeypairPath);
       console.log('[JITO] Auth keypair loaded');
 
-      // Create searcher client
-      this.searcherClient = await createSearcherClient({
+      // Create searcher client (jito-ts v3.x API)
+      this.searcherClient = await searcher.createSearcherClient({
         blockEngineUrl: this.config.blockEngineUrl,
         authKeypair: authKeypair
       });
@@ -199,8 +198,9 @@ export class JitoManager {
       
       console.log(`📊 Network Health: ${health.score}/100 (${health.status})`);
 
-      // Step 3: Submit bundle
-      const result = await this.searcherClient.sendBundle([txWithBudget]);
+      // Step 3: Submit bundle (jito-ts API: Bundle with transaction limit)
+      const bundle = new Bundle([txWithBudget], this.config.bundleTransactionLimit);
+      const result = await this.searcherClient.sendBundle(bundle);
       
       console.log('[JITO] Bundle submitted:', result);
       return {
