@@ -36,22 +36,43 @@ const server = http.createServer((req, res) => {
     
     // Special case: lifecycle_log.json is in root folder (allowed for dashboard)
     if (req.url === '/lifecycle_log.json') {
+        // Try both root folder and dashboard folder
         const rootLog = path.join(__dirname, '../lifecycle_log.json');
+        const dashboardLog = path.join(DASHBOARD_DIR, 'lifecycle_log.json');
+        
+        let logFile = null;
         if (fs.existsSync(rootLog)) {
+            logFile = rootLog;
+            console.log(`[DASHBOARD] Serving lifecycle_log.json from root folder`);
+        } else if (fs.existsSync(dashboardLog)) {
+            logFile = dashboardLog;
+            console.log(`[DASHBOARD] Serving lifecycle_log.json from dashboard folder`);
+        }
+        
+        if (logFile) {
             // Serve the file directly
-            fs.readFile(rootLog, (err, content) => {
+            fs.readFile(logFile, (err, content) => {
                 if (err) {
+                    console.error(`[DASHBOARD] Error reading lifecycle_log.json: ${err.message}`);
                     res.writeHead(500);
                     res.end('Server Error');
                 } else {
-                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    console.log(`[DASHBOARD] Serving ${content.length} bytes of lifecycle data`);
+                    res.writeHead(200, { 
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    });
                     res.end(content, 'utf-8');
                 }
             });
             return;
         } else {
             // Return empty array if file doesn't exist yet
-            res.writeHead(200, { 'Content-Type': 'application/json' });
+            console.log('[DASHBOARD] No lifecycle_log.json found in root or dashboard folder');
+            res.writeHead(200, { 
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            });
             res.end('[]');
             return;
         }
