@@ -89,7 +89,7 @@ export class FailureReasoningAgent {
    * @param context Failure context from lifecycle tracker
    * @param healthContext Optional network health context (0-100 score)
    */
-  analyzeFailure(context: FailureContext, healthContext?: NetworkHealthContext): RetryParameters {
+  async analyzeFailure(context: FailureContext, healthContext?: NetworkHealthContext): Promise<RetryParameters> {
     const {
       failureType,
       failureStage,
