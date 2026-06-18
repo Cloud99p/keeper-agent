@@ -19,10 +19,10 @@ import { NetworkHealthCalculator } from './network-health.js';
 
 // Jito SDK imports
 import { 
+  Bundle as JitoBundle,
   SearcherClient,
   createSearcherClient
 } from 'jito-ts';
-import { Bundle as JitoBundle } from 'jito-ts/dist/sdk/bundle.js';
 
 export interface JitoConfig {
   blockEngineUrl: string;
