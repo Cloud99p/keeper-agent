@@ -7,10 +7,15 @@ import {
   Connection, 
   Keypair, 
   PublicKey, 
-  Transaction 
+  Transaction,
+  VersionedTransaction,
+  SystemProgram,
+  ComputeBudgetProgram
 } from '@solana/web3.js';
 import * as fs from 'fs';
 import * as path from 'path';
+import { simulateBeforeSubmit, formatSimulationResult } from './preflight-simulator.js';
+import { NetworkHealthCalculator } from './network-health.js';
 
 // Jito SDK imports
 import { 
@@ -32,6 +37,8 @@ export class JitoManager {
   private searcherClient: SearcherClient | null = null;
   private tipAccounts: PublicKey[] = [];
   private currentTipIndex: number = 0;
+  private healthCalculator: NetworkHealthCalculator;
+  private recentHealthScores: number[] = [];
 
   constructor(connection: Connection) {
     this.connection = connection;
@@ -41,6 +48,7 @@ export class JitoManager {
       bundleTransactionLimit: parseInt(process.env.BUNDLE_TRANSACTION_LIMIT || '5'),
       rpcUrl: process.env.RPC_URL || 'https://api.mainnet-beta.solana.com'
     };
+    this.healthCalculator = new NetworkHealthCalculator(connection);
   }
 
   /**
@@ -149,22 +157,59 @@ export class JitoManager {
   }
 
   /**
-   * Submit a bundle to Jito
+   * Submit a bundle to Jito with pre-flight simulation
    */
-  async submitBundle(transactions: Buffer[]): Promise<string> {
+  async submitBundle(
+    transactions: VersionedTransaction[],
+    payerPublicKey: PublicKey
+  ): Promise<{ bundleId: string; simulationResult?: any; healthScore?: number }> {
     if (!this.searcherClient) {
       throw new Error('Searcher client not initialized');
     }
 
     try {
-      // Create bundle
-      const bundle = new JitoBundle(transactions, this.config.bundleTransactionLimit);
+      // Step 1: Pre-flight simulation (KAIROS-inspired feature)
+      const simulation = await simulateBeforeSubmit(this.connection, transactions[0], payerPublicKey);
+      
+      if (!simulation.success) {
+        const result = formatSimulationResult(simulation);
+        console.log(`❌ ${result}`);
+        throw new Error(`Pre-flight failed: ${simulation.error}`);
+      }
+      
+      console.log(`✅ ${formatSimulationResult(simulation)}`);
+      
+      // Add compute budget based on simulation
+      const instructions = transactions[0].instructions;
+      const computeBudgetInstructions = [
+        ComputeBudgetProgram.setComputeUnitLimit({ units: simulation.computeBudget || 200000 }),
+        ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1000 }),
+      ];
+      
+      // Rebuild transaction with compute budget
+      const txWithBudget = new VersionedTransaction(
+        [...computeBudgetInstructions, ...transactions[0].instructions]
+      );
 
-      // Submit bundle
+      // Step 2: Calculate network health (KAIROS-inspired feature)
+      const health = await this.healthCalculator.calculateHealth();
+      this.recentHealthScores.push(health.score);
+      if (this.recentHealthScores.length > 20) {
+        this.recentHealthScores.shift();
+      }
+      
+      console.log(`📊 Network Health: ${health.score}/100 (${health.status})`);
+
+      // Step 3: Submit bundle
+      const bundle = new JitoBundle([txWithBudget], this.config.bundleTransactionLimit);
       const result = await this.searcherClient.sendBundle(bundle);
       
       console.log('[JITO] Bundle submitted:', result);
-      return result.bundleId || 'unknown';
+      return {
+        bundleId: result.bundleId || 'unknown',
+        simulationResult: simulation,
+        healthScore: health.score,
+      };
     } catch (error: any) {
       console.error('[JITO] Bundle submission failed:', error.message);
       throw error;

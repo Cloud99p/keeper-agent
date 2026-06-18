@@ -47,6 +47,14 @@ export interface RetryParameters {
   reasoning: AgentReasoning;
 }
 
+export interface NetworkHealthContext {
+  score: number;              // 0-100
+  status: 'healthy' | 'degraded' | 'congested';
+  confirmationLatencyMs: number;
+  skipRate: number;
+  leaderQuality: number;
+}
+
 /**
  * Failure Reasoning Agent
  */
@@ -68,8 +76,11 @@ export class FailureReasoningAgent {
    * 3. Calculates confidence score
    * 4. Derives decision parameters (NOT hardcoded)
    * 5. Logs full reasoning before returning
+   * 
+   * @param context Failure context from lifecycle tracker
+   * @param healthContext Optional network health context (0-100 score)
    */
-  analyzeFailure(context: FailureContext): RetryParameters {
+  analyzeFailure(context: FailureContext, healthContext?: NetworkHealthContext): RetryParameters {
     const {
       failureType,
       failureStage,

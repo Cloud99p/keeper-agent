@@ -43,6 +43,10 @@ node scripts/test-bundle.js
 | 💰 **Dynamic Tips** | Triple-signal calculation from on-chain data | ✅ Production |
 | 📊 **Lifecycle Tracking** | 4-stage monitoring (submitted→finalized) | ✅ Production |
 | 🪟 **Windows Native** | No WSL required, works on all platforms | ✅ Tested |
+| 📈 **Network Health Score** | 0-100 health metric from 4 signals (KAIROS-inspired) | ✅ Added |
+| 🔍 **Pre-flight Simulation** | Catch failures before submission (KAIROS-inspired) | ✅ Added |
+| 💹 **Tip Efficiency Scoring** | Cost optimization tracking | ✅ Added |
+| 🤖 **AI Intelligence Report** | Auto-generated performance summary | ✅ Added |
 
 ---
 
