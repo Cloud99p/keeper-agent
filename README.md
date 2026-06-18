@@ -448,22 +448,6 @@ MIT License - see [LICENSE](./LICENSE) for details.
 
 ---
 
-## 🏆 Bounty Submission
-
-This project is submitted for the **SuperteamNG × SolInfra Advanced Infrastructure Challenge**.
-
-**Challenge**: Build a Smart Transaction Stack
-**Prize Pool**: $5,000 USDG (1st: $2,500, 2nd: $1,500, 3rd: $1,000)
-
-**Our Edge**:
-- ✅ 45+ devnet bundles tested (100% success)
-- ✅ AI-powered failure recovery (Qwen3.5-397B)
-- ✅ Triple-signal dynamic tip calculation
-- ✅ Complete lifecycle tracking
-- ✅ Production-ready with SolInfra infrastructure
-
----
-
 **Built with ❤️ for the Solana ecosystem**
 
 *Last Updated: June 18, 2026*
