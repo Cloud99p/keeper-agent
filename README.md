@@ -219,8 +219,12 @@ npm start
 # Dashboard (live monitoring)
 npm run dashboard
 
-# Or dashboard with auto-open browser
-npm run dashboard:open
+# Dashboard with auto-sync (recommended for live updates)
+npm run dashboard:full
+
+# Or run separately in two terminals:
+# Terminal 1: npm run dashboard
+# Terminal 2: npm run sync
 
 # Run TypeScript files (use npx tsx)
 npx tsx scripts/test-bundle.js
