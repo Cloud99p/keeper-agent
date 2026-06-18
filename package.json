@@ -22,11 +22,11 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@solana/web3.js": "^1.95.0",
+    "@solana/web3.js": "^1.87.6",
     "jito-ts": "^4.0.0",
     "dotenv": "^16.4.5",
     "bs58": "^6.0.0",
-    "rpc-websockets": "^9.0.0"
+    "rpc-websockets": "^7.11.0"
   },
   "devDependencies": {
     "@types/node": "^20.17.0",
