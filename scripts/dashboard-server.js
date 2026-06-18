@@ -34,9 +34,17 @@ const server = http.createServer((req, res) => {
     // Default to index.html
     let filePath = path.join(DASHBOARD_DIR, req.url === '/' ? 'index.html' : req.url);
     
-    // Special case: lifecycle_log.json is in root folder
+    // Special case: lifecycle_log.json is in root folder (allowed for dashboard)
     if (req.url === '/lifecycle_log.json') {
-        filePath = path.join(__dirname, '../lifecycle_log.json');
+        const rootLog = path.join(__dirname, '../lifecycle_log.json');
+        if (fs.existsSync(rootLog)) {
+            filePath = rootLog;
+        } else {
+            // Return empty array if file doesn't exist yet
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end('[]');
+            return;
+        }
     }
 
     // Security: Prevent directory traversal

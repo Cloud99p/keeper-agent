@@ -12,7 +12,9 @@
     "lint": "eslint src/**/*.ts",
     "test": "vitest",
     "dashboard": "node scripts/dashboard-server.js",
-    "dashboard:open": "node scripts/dashboard-server.js && start http://localhost:3000"
+    "dashboard:open": "node scripts/dashboard-server.js",
+    "sync": "node scripts/sync-lifecycle.js",
+    "dashboard:full": "npm run dashboard & npm run sync"
   },
   "keywords": [
     "solana",
