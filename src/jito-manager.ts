@@ -19,7 +19,6 @@ import { NetworkHealthCalculator } from './network-health.js';
 
 // Jito SDK imports
 import { 
-  Bundle as JitoBundle,
   SearcherClient,
   createSearcherClient
 } from 'jito-ts';
@@ -201,8 +200,7 @@ export class JitoManager {
       console.log(`📊 Network Health: ${health.score}/100 (${health.status})`);
 
       // Step 3: Submit bundle
-      const bundle = new JitoBundle([txWithBudget], this.config.bundleTransactionLimit);
-      const result = await this.searcherClient.sendBundle(bundle);
+      const result = await this.searcherClient.sendBundle([txWithBudget]);
       
       console.log('[JITO] Bundle submitted:', result);
       return {
