@@ -17,10 +17,8 @@ import * as path from 'path';
 import { simulateBeforeSubmit, formatSimulationResult } from './preflight-simulator.js';
 import { NetworkHealthCalculator } from './network-health.js';
 
-// Jito SDK imports
-import { Bundle } from 'jito-ts/dist/sdk/block-engine/types';
-import { SearcherClient } from 'jito-ts/dist/sdk/block-engine/searcher';
-import { createSearcherClient } from 'jito-ts/dist/sdk/block-engine/searcher';
+// Jito SDK imports (v4.x API)
+import { Bundle, SearcherClient, createSearcherClient } from 'jito-ts';
 
 export interface JitoConfig {
   blockEngineUrl: string;
