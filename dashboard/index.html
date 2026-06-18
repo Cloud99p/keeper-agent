@@ -482,7 +482,8 @@
 
         // Load data from lifecycle_log.json
         function loadData() {
-            fetch('lifecycle_log.json')
+            // Try both root and dashboard folder
+            fetch('../lifecycle_log.json')
                 .then(response => response.json())
                 .then(data => {
                     bundles = data;
