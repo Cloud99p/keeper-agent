@@ -180,17 +180,39 @@
             margin-right: 15px;
         }
 
-        .ai-decisions {
+        .ai-decisions-panel {
             background: rgba(255, 255, 255, 0.1);
             border-radius: 15px;
             padding: 25px;
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
+            max-width: 400px;
+            margin-left: auto;
         }
 
-        .ai-decisions h3 {
+        .ai-decisions-panel h3 {
             margin-bottom: 20px;
             color: #00d9ff;
+        }
+
+        .ai-decisions-container {
+            max-height: 500px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .ai-decisions-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .ai-decisions-container::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+        }
+
+        .ai-decisions-container::-webkit-scrollbar-thumb {
+            background: rgba(0, 217, 255, 0.5);
+            border-radius: 3px;
         }
 
         .decision-item {
@@ -199,6 +221,8 @@
             padding: 15px;
             margin-bottom: 10px;
             border-left: 4px solid #00d9ff;
+            flex-shrink: 0;
+            min-width: 280px;
         }
 
         .decision-header {
@@ -380,9 +404,9 @@
                 </div>
             </div>
 
-            <div class="ai-decisions">
+            <div class="ai-decisions-panel">
                 <h3>🤖 AI Decisions</h3>
-                <div id="aiDecisions">
+                <div id="aiDecisions" class="ai-decisions-container">
                     <div class="empty-state">
                         <svg viewBox="0 0 24 24" fill="currentColor">
                             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/>
