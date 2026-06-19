@@ -537,7 +537,7 @@
             successChart.update();
 
             tipChart.data.labels = recentBundles.map((_, i) => `Bundle ${i + 1}`);
-            tipChart.data.datasets[0].data = recentBundles.map(b => b.tipLamports || 0);
+            tipChart.data.datasets[0].data = recentBundles.map(b => b.tip_amount || b.tipLamports || 0);
             tipChart.update();
 
             // Live feed
