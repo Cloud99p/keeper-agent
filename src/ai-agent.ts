@@ -132,7 +132,8 @@ export class FailureReasoningAgent {
       recentTips,
       submissionSlot,
       contributingFactors,
-      confidence
+      confidence,
+      submissionLatency
     );
     console.log('[AGENT] Decision:', decision.action);
     console.log(`  - Tip adjustment: ${decision.tip_adjustment_percent.toFixed(1)}%`);
@@ -423,7 +424,8 @@ export class FailureReasoningAgent {
     recentTips: number[],
     _submissionSlot: number,
     factors: string[],
-    confidence: number
+    confidence: number,
+    submissionLatency: number
   ): AgentDecision {
     const { skipRate, leaderQuality, congestionLevel } = slotConditions;
 
