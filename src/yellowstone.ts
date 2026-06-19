@@ -17,6 +17,7 @@ import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const YellowstoneGrpc = require('@triton-one/yellowstone-grpc');
 const YellowstoneClient = YellowstoneGrpc.default || YellowstoneGrpc;
+const { CommitmentLevel } = YellowstoneGrpc;
 
 import { Connection } from '@solana/web3.js';
 import { Config } from './config.js';
