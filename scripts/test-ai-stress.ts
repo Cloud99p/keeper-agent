@@ -4,6 +4,9 @@
  * Tests multiple failure scenarios to evaluate AI decision-making
  */
 
+import dotenv from 'dotenv';
+dotenv.config();
+
 import { JitoService } from '../src/jito.js';
 import { YellowstoneService } from '../src/yellowstone.js';
 import { LifecycleTracker } from '../src/lifecycle.js';
