@@ -148,12 +148,17 @@ export class YellowstoneService {
   }
 
   /**
-   * Start gRPC stream with full subscription (or HTTP RPC fallback for devnet)
+   * Start gRPC stream with full subscription (or HTTP RPC fallback)
    */
   private async startGrpcStream(): Promise<void> {
-    // Check if using devnet (HTTP RPC fallback)
-    if (this.config.yellowstoneRpcUrl.includes('devnet')) {
-      console.log('[YELLOWSTONE] Devnet detected - starting HTTP RPC slot subscription');
+    // Check if using HTTP RPC fallback (devnet or non-gRPC endpoints)
+    const isHttpFallback = 
+      this.config.yellowstoneRpcUrl.includes('devnet') ||
+      this.config.yellowstoneRpcUrl.includes('/sol') ||  // Solana RPC endpoint
+      this.config.yellowstoneRpcUrl.includes('api_key');  // API key auth (Solinfra style)
+    
+    if (isHttpFallback) {
+      console.log('[YELLOWSTONE] HTTP RPC detected - starting HTTP RPC slot subscription');
       await this.startHttpRpcSubscription();
       return;
     }
