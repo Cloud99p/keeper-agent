@@ -444,39 +444,51 @@ export class JitoService {
           // INVOKE AI AGENT FOR AUTONOMOUS DECISION
           console.log('\n[AGENT] Invoking autonomous failure reasoning...');
           
-          const agentDecision = await this.agent.analyzeFailure({
-            failureType,
-            failureStage: 'processed',
-            submissionSlot: currentSlot,
-            submissionTimestamp: startTime,
-            blockhashSlot: currentBlockhashSlot,
-            blockhashAge: currentSlot - currentBlockhashSlot,
-            slotConditions: {
-              skipRate,
-              congestionLevel: skipRate,
-              leaderQuality,
-            },
-            recentTips,
-            submissionLatency,
-          });
+          let agentDecision;
+          try {
+            agentDecision = await this.agent.analyzeFailure({
+              failureType,
+              failureStage: 'processed',
+              submissionSlot: currentSlot,
+              submissionTimestamp: startTime,
+              blockhashSlot: currentBlockhashSlot,
+              blockhashAge: currentSlot - currentBlockhashSlot,
+              slotConditions: {
+                skipRate,
+                congestionLevel: skipRate,
+                leaderQuality,
+              },
+              recentTips,
+              submissionLatency,
+            });
+            console.log('[AGENT] Decision returned:', agentDecision.decision?.action || 'N/A');
+          } catch (aiError: any) {
+            console.error('[AGENT] AI analysis failed:', aiError.message);
+            console.error('[AGENT] Stack:', aiError.stack);
+            agentDecision = null;
+          }
 
-          // SAVE AI REASONING TO LIFECYCLE LOG
-          const reasoningSummary = JSON.stringify({
-            confidence: agentDecision.reasoning.confidence,
-            factors: agentDecision.reasoning.contributing_factors,
-            action: agentDecision.reasoning.decision.action,
-            tip_adjustment: agentDecision.tipAdjustment,
-            delay_ms: agentDecision.delayMs,
-            blockhash_refresh: agentDecision.refreshBlockhash,
-          });
-          this.lifecycle.updateFailureWithReasoning(
-            bundleId,
-            reasoningSummary,
-            agentDecision.reasoning.decision.action,
-            agentDecision.tipAdjustment,
-            agentDecision.delayMs
-          );
-          console.log('[LIFECYCLE] AI reasoning saved:', bundleId);
+          // SAVE AI REASONING TO LIFECYCLE LOG (if AI succeeded)
+          if (agentDecision) {
+            const reasoningSummary = JSON.stringify({
+              confidence: agentDecision.reasoning.confidence,
+              factors: agentDecision.reasoning.contributing_factors,
+              action: agentDecision.reasoning.decision.action,
+              tip_adjustment: agentDecision.tipAdjustment,
+              delay_ms: agentDecision.delayMs,
+              blockhash_refresh: agentDecision.refreshBlockhash,
+            });
+            this.lifecycle.updateFailureWithReasoning(
+              bundleId,
+              reasoningSummary,
+              agentDecision.reasoning.decision.action,
+              agentDecision.tipAdjustment,
+              agentDecision.delayMs
+            );
+            console.log('[LIFECYCLE] AI reasoning saved:', bundleId);
+          } else {
+            console.log('[LIFECYCLE] Skipping AI reasoning save (AI failed)');
+          }
 
           // AI AGENT DECIDES: Retry or Abort?
           if (!agentDecision.shouldRetry || retryCount >= maxRetries) {
