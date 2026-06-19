@@ -469,7 +469,14 @@ export class JitoService {
             delay_ms: agentDecision.delayMs,
             blockhash_refresh: agentDecision.refreshBlockhash,
           });
-          this.lifecycle.updateFailureWithReasoning(bundleId, 'processed', 'ai_analysis', reasoningSummary);
+          this.lifecycle.updateFailureWithReasoning(
+            bundleId,
+            reasoningSummary,
+            agentDecision.reasoning.decision.action,
+            agentDecision.tipAdjustment,
+            agentDecision.delayMs
+          );
+          console.log('[LIFECYCLE] AI reasoning saved:', bundleId);
 
           // AI AGENT DECIDES: Retry or Abort?
           if (!agentDecision.shouldRetry || retryCount >= maxRetries) {
