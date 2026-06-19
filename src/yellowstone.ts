@@ -148,18 +148,18 @@ export class YellowstoneService {
   }
 
   /**
-   * Start gRPC stream with full subscription (or WebSocket fallback for Solinfra)
+   * Start gRPC stream with full subscription (or HTTP RPC fallback for Solinfra)
    */
   private async startGrpcStream(): Promise<void> {
-    // Check if using Solinfra WebSocket endpoint
-    const isSolinfra = 
+    // Check if using HTTP RPC fallback (Solinfra or non-gRPC endpoints)
+    const isHttpFallback = 
       this.config.yellowstoneRpcUrl.includes('solinfra') ||
       this.config.yellowstoneRpcUrl.includes('/sol') ||
       this.config.yellowstoneRpcUrl.includes('api_key');
     
-    if (isSolinfra) {
-      console.log('[YELLOWSTONE] Solinfra endpoint detected - starting WebSocket subscription');
-      await this.startWebSocketSubscription();
+    if (isHttpFallback) {
+      console.log('[YELLOWSTONE] HTTP RPC endpoint detected - using polling');
+      await this.startHttpRpcSubscription();
       return;
     }
 
@@ -221,67 +221,47 @@ export class YellowstoneService {
   }
 
   /**
-   * WebSocket slot subscription (Solinfra format)
+   * HTTP RPC slot subscription (fallback for non-gRPC endpoints)
    */
-  private async startWebSocketSubscription(): Promise<void> {
+  private async startHttpRpcSubscription(): Promise<void> {
     try {
-      // Build Solinfra WebSocket URL from HTTP RPC URL
-      const httpUrl = this.config.yellowstoneRpcUrl;
-      const wsUrl = httpUrl
-        .replace('https://', 'wss://')
-        .replace('http://', 'ws://');
-
-      console.log('[YELLOWSTONE] Connecting to WebSocket:', wsUrl);
-      
-      const ws = new WebSocket(wsUrl);
-      
-      await new Promise<void>((resolve, reject) => {
-        ws.onopen = () => {
-          console.log('[YELLOWSTONE] WebSocket connected');
-          // Subscribe to slot updates
-          ws.send(JSON.stringify({
-            jsonrpc: '2.0',
-            id: 1,
-            method: 'slotSubscribe',
-            params: [],
-          }));
-          resolve();
-        };
-        
-        ws.onerror = (error) => {
-          console.error('[YELLOWSTONE] WebSocket error:', error);
-          reject(error);
-        };
-        
-        ws.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            if (data.result && data.result.value) {
-              const update: SlotUpdate = {
-                slot: data.result.value.slot,
-                timestamp: Date.now(),
-                parent: data.result.value.parent || data.result.value.slot - 1,
-                root: data.result.value.root || data.result.value.slot - 1,
-              };
-              
-              this.lastSlot = update.slot;
-              this.enqueueEvent(update);
-              this.notifySubscribers(update);
-            }
-          } catch (err: any) {
-            console.error('[YELLOWSTONE] Failed to parse WebSocket message:', err.message);
-          }
-        };
-      });
-
+      console.log('[YELLOWSTONE] Using HTTP RPC polling for slot updates');
       this.reconnectAttempts = 0;
       this.isStreamActive = true;
-      console.log('[YELLOWSTONE] WebSocket slot subscription active');
 
+      // Poll for slot changes every 400ms
+      let lastSlot = await this.rpcConnection.getSlot();
+      
+      const pollInterval = setInterval(async () => {
+        if (!this.isStreamActive) {
+          clearInterval(pollInterval);
+          return;
+        }
+        
+        try {
+          const currentSlot = await this.rpcConnection.getSlot();
+          if (currentSlot > lastSlot) {
+            const update: SlotUpdate = {
+              slot: currentSlot,
+              timestamp: Date.now(),
+              parent: lastSlot,
+              root: currentSlot - 1,
+            };
+            
+            this.lastSlot = update.slot;
+            this.enqueueEvent(update);
+            this.notifySubscribers(update);
+            lastSlot = currentSlot;
+          }
+        } catch (err: any) {
+          // Silently ignore polling errors
+        }
+      }, 400);
+
+      return;
     } catch (error: any) {
-      console.error('[YELLOWSTONE] WebSocket subscription error:', error.message);
+      // Suppress error - already using fallback
       this.isStreamActive = false;
-      this.scheduleReconnect();
     }
   }
 
