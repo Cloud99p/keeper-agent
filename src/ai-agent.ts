@@ -425,7 +425,7 @@ export class FailureReasoningAgent {
     factors: string[],
     confidence: number
   ): AgentDecision {
-    const { skipRate, leaderQuality: _leaderQuality } = slotConditions;
+    const { skipRate, leaderQuality, congestionLevel } = slotConditions;
 
     // Determine action
     let action: 'retry' | 'abort' | 'wait_and_retry' = 'retry';
