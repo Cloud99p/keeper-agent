@@ -1,1 +1,437 @@
-{"bundles":[]}
+{
+  "generated_at": "2026-06-19T08:56:51.366Z",
+  "total_bundles": 22,
+  "successful": 0,
+  "failed": 22,
+  "bundles": [
+    {
+      "bundle_id": "bundle_mqkp17cm_vkbs6n_1",
+      "tip_amount": 2438,
+      "submission_slot": 470484283,
+      "blockhash_slot": 470484283,
+      "stages": {
+        "submitted": {
+          "timestamp": 1781859321641,
+          "slot": 470484283
+        }
+      },
+      "retry_count": 0,
+      "signature": "failed",
+      "failure": {
+        "occurred": true,
+        "stage": "processed",
+        "type": "unknown",
+        "details": "failed to send transaction: Transaction simulation failed: Attempt to debit an account but found no record of a prior credit."
+      }
+    },
+    {
+      "bundle_id": "bundle_mqkp17wn_zupn7x_2",
+      "tip_amount": 0,
+      "submission_slot": 470484285,
+      "blockhash_slot": 470484285,
+      "stages": {
+        "submitted": {
+          "timestamp": 1781859321671,
+          "slot": 470484285
+        }
+      },
+      "retry_count": 0,
+      "failure": {
+        "occurred": true,
+        "stage": "submitted",
+        "type": "unknown",
+        "details": "leaderQuality is not defined"
+      }
+    },
+    {
+      "bundle_id": "bundle_mqkp19gy_c71907_3",
+      "tip_amount": 2500,
+      "submission_slot": 470484291,
+      "blockhash_slot": 470484291,
+      "stages": {
+        "submitted": {
+          "timestamp": 1781859324397,
+          "slot": 470484291
+        }
+      },
+      "retry_count": 0,
+      "signature": "failed",
+      "failure": {
+        "occurred": true,
+        "stage": "processed",
+        "type": "unknown",
+        "details": "failed to send transaction: Transaction simulation failed: Attempt to debit an account but found no record of a prior credit."
+      }
+    },
+    {
+      "bundle_id": "bundle_mqkp1a13_fnynwz_4",
+      "tip_amount": 0,
+      "submission_slot": 470484292,
+      "blockhash_slot": 470484292,
+      "stages": {
+        "submitted": {
+          "timestamp": 1781859324424,
+          "slot": 470484292
+        }
+      },
+      "retry_count": 0,
+      "failure": {
+        "occurred": true,
+        "stage": "submitted",
+        "type": "unknown",
+        "details": "leaderQuality is not defined"
+      }
+    },
+    {
+      "bundle_id": "bundle_mqkp1bkv_poaddb_5",
+      "tip_amount": 2438,
+      "submission_slot": 470484298,
+      "blockhash_slot": 470484298,
+      "stages": {
+        "submitted": {
+          "timestamp": 1781859327107,
+          "slot": 470484298
+        }
+      },
+      "retry_count": 0,
+      "signature": "failed",
+      "failure": {
+        "occurred": true,
+        "stage": "processed",
+        "type": "unknown",
+        "details": "failed to send transaction: Transaction simulation failed: Attempt to debit an account but found no record of a prior credit."
+      }
+    },
+    {
+      "bundle_id": "bundle_mqkp1c4c_mi3og0_6",
+      "tip_amount": 0,
+      "submission_slot": 470484300,
+      "blockhash_slot": 470484300,
+      "stages": {
+        "submitted": {
+          "timestamp": 1781859327132,
+          "slot": 470484300
+        }
+      },
+      "retry_count": 0,
+      "failure": {
+        "occurred": true,
+        "stage": "submitted",
+        "type": "unknown",
+        "details": "leaderQuality is not defined"
+      }
+    },
+    {
+      "bundle_id": "bundle_mqkp1do7_393c5q_7",
+      "tip_amount": 2500,
+      "submission_slot": 470484305,
+      "blockhash_slot": 470484305,
+      "stages": {
+        "submitted": {
+          "timestamp": 1781859329835,
+          "slot": 470484305
+        }
+      },
+      "retry_count": 0,
+      "signature": "failed",
+      "failure": {
+        "occurred": true,
+        "stage": "processed",
+        "type": "unknown",
+        "details": "failed to send transaction: Transaction simulation failed: Attempt to debit an account but found no record of a prior credit."
+      }
+    },
+    {
+      "bundle_id": "bundle_mqkp1e8i_u2jlnv_8",
+      "tip_amount": 0,
+      "submission_slot": 470484307,
+      "blockhash_slot": 470484307,
+      "stages": {
+        "submitted": {
+          "timestamp": 1781859329874,
+          "slot": 470484307
+        }
+      },
+      "retry_count": 0,
+      "failure": {
+        "occurred": true,
+        "stage": "submitted",
+        "type": "unknown",
+        "details": "leaderQuality is not defined"
+      }
+    },
+    {
+      "bundle_id": "bundle_mqkp1fse_l6h9lq_9",
+      "tip_amount": 2500,
+      "submission_slot": 470484312,
+      "blockhash_slot": 470484312,
+      "stages": {
+        "submitted": {
+          "timestamp": 1781859332638,
+          "slot": 470484312
+        }
+      },
+      "retry_count": 0,
+      "signature": "failed",
+      "failure": {
+        "occurred": true,
+        "stage": "processed",
+        "type": "unknown",
+        "details": "failed to send transaction: Transaction simulation failed: Attempt to debit an account but found no record of a prior credit."
+      }
+    },
+    {
+      "bundle_id": "bundle_mqkp1ge5_mou0ys_10",
+      "tip_amount": 0,
+      "submission_slot": 470484314,
+      "blockhash_slot": 470484314,
+      "stages": {
+        "submitted": {
+          "timestamp": 1781859332669,
+          "slot": 470484314
+        }
+      },
+      "retry_count": 0,
+      "failure": {
+        "occurred": true,
+        "stage": "submitted",
+        "type": "unknown",
+        "details": "leaderQuality is not defined"
+      }
+    },
+    {
+      "bundle_id": "bundle_mqkp1hy7_hz8o5a_11",
+      "tip_amount": 2438,
+      "submission_slot": 470484319,
+      "blockhash_slot": 470484319,
+      "stages": {
+        "submitted": {
+          "timestamp": 1781859335388,
+          "slot": 470484319
+        }
+      },
+      "retry_count": 0,
+      "signature": "failed",
+      "failure": {
+        "occurred": true,
+        "stage": "processed",
+        "type": "unknown",
+        "details": "failed to send transaction: Transaction simulation failed: Attempt to debit an account but found no record of a prior credit."
+      }
+    },
+    {
+      "bundle_id": "bundle_mqkp1ii0_egmir9_12",
+      "tip_amount": 0,
+      "submission_slot": 470484321,
+      "blockhash_slot": 470484321,
+      "stages": {
+        "submitted": {
+          "timestamp": 1781859335400,
+          "slot": 470484321
+        }
+      },
+      "retry_count": 0,
+      "failure": {
+        "occurred": true,
+        "stage": "submitted",
+        "type": "unknown",
+        "details": "leaderQuality is not defined"
+      }
+    },
+    {
+      "bundle_id": "bundle_mqkp1k1t_rtnewv_13",
+      "tip_amount": 2500,
+      "submission_slot": 470484327,
+      "blockhash_slot": 470484327,
+      "stages": {
+        "submitted": {
+          "timestamp": 1781859338071,
+          "slot": 470484327
+        }
+      },
+      "retry_count": 0,
+      "signature": "failed",
+      "failure": {
+        "occurred": true,
+        "stage": "processed",
+        "type": "unknown",
+        "details": "failed to send transaction: Transaction simulation failed: Attempt to debit an account but found no record of a prior credit."
+      }
+    },
+    {
+      "bundle_id": "bundle_mqkp1kkk_nnh5mw_14",
+      "tip_amount": 0,
+      "submission_slot": 470484328,
+      "blockhash_slot": 470484328,
+      "stages": {
+        "submitted": {
+          "timestamp": 1781859338084,
+          "slot": 470484328
+        }
+      },
+      "retry_count": 0,
+      "failure": {
+        "occurred": true,
+        "stage": "submitted",
+        "type": "unknown",
+        "details": "leaderQuality is not defined"
+      }
+    },
+    {
+      "bundle_id": "bundle_mqkp1m4e_7x5ch5_15",
+      "tip_amount": 2500,
+      "submission_slot": 470484334,
+      "blockhash_slot": 470484334,
+      "stages": {
+        "submitted": {
+          "timestamp": 1781859340790,
+          "slot": 470484334
+        }
+      },
+      "retry_count": 0,
+      "signature": "failed",
+      "failure": {
+        "occurred": true,
+        "stage": "processed",
+        "type": "unknown",
+        "details": "failed to send transaction: Transaction simulation failed: Attempt to debit an account but found no record of a prior credit."
+      }
+    },
+    {
+      "bundle_id": "bundle_mqkp1mo3_0yz68s_16",
+      "tip_amount": 0,
+      "submission_slot": 470484335,
+      "blockhash_slot": 470484335,
+      "stages": {
+        "submitted": {
+          "timestamp": 1781859340803,
+          "slot": 470484335
+        }
+      },
+      "retry_count": 0,
+      "failure": {
+        "occurred": true,
+        "stage": "submitted",
+        "type": "unknown",
+        "details": "leaderQuality is not defined"
+      }
+    },
+    {
+      "bundle_id": "bundle_mqkp1o7y_dh8fk1_17",
+      "tip_amount": 2563,
+      "submission_slot": 470484341,
+      "blockhash_slot": 470484341,
+      "stages": {
+        "submitted": {
+          "timestamp": 1781859343491,
+          "slot": 470484341
+        }
+      },
+      "retry_count": 0,
+      "signature": "failed",
+      "failure": {
+        "occurred": true,
+        "stage": "processed",
+        "type": "unknown",
+        "details": "failed to send transaction: Transaction simulation failed: Attempt to debit an account but found no record of a prior credit."
+      }
+    },
+    {
+      "bundle_id": "bundle_mqkp1or8_a2apej_18",
+      "tip_amount": 0,
+      "submission_slot": 470484342,
+      "blockhash_slot": 470484342,
+      "stages": {
+        "submitted": {
+          "timestamp": 1781859343508,
+          "slot": 470484342
+        }
+      },
+      "retry_count": 0,
+      "failure": {
+        "occurred": true,
+        "stage": "submitted",
+        "type": "unknown",
+        "details": "leaderQuality is not defined"
+      }
+    },
+    {
+      "bundle_id": "bundle_mqkp1qaz_fdksvd_19",
+      "tip_amount": 2438,
+      "submission_slot": 470484347,
+      "blockhash_slot": 470484347,
+      "stages": {
+        "submitted": {
+          "timestamp": 1781859346218,
+          "slot": 470484347
+        }
+      },
+      "retry_count": 0,
+      "signature": "failed",
+      "failure": {
+        "occurred": true,
+        "stage": "processed",
+        "type": "unknown",
+        "details": "failed to send transaction: Transaction simulation failed: Attempt to debit an account but found no record of a prior credit."
+      }
+    },
+    {
+      "bundle_id": "bundle_mqkp1qvk_2xii2x_20",
+      "tip_amount": 0,
+      "submission_slot": 470484350,
+      "blockhash_slot": 470484350,
+      "stages": {
+        "submitted": {
+          "timestamp": 1781859346256,
+          "slot": 470484350
+        }
+      },
+      "retry_count": 0,
+      "failure": {
+        "occurred": true,
+        "stage": "submitted",
+        "type": "unknown",
+        "details": "leaderQuality is not defined"
+      }
+    },
+    {
+      "bundle_id": "bundle_mqkp1qvy_rq5byv_21",
+      "tip_amount": 2500,
+      "submission_slot": 470484350,
+      "blockhash_slot": 470484350,
+      "stages": {
+        "submitted": {
+          "timestamp": 1781859411348,
+          "slot": 470484350
+        }
+      },
+      "retry_count": 0,
+      "signature": "failed",
+      "failure": {
+        "occurred": true,
+        "stage": "processed",
+        "type": "unknown",
+        "details": "failed to send transaction: Transaction simulation failed: Attempt to debit an account but found no record of a prior credit."
+      }
+    },
+    {
+      "bundle_id": "bundle_mqkp3542_0hix6k_22",
+      "tip_amount": 0,
+      "submission_slot": 470484523,
+      "blockhash_slot": 470484523,
+      "stages": {
+        "submitted": {
+          "timestamp": 1781859411362,
+          "slot": 470484523
+        }
+      },
+      "retry_count": 0,
+      "failure": {
+        "occurred": true,
+        "stage": "submitted",
+        "type": "unknown",
+        "details": "leaderQuality is not defined"
+      }
+    }
+  ]
+}
