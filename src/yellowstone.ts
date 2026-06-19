@@ -190,10 +190,17 @@ export class YellowstoneService {
       this.stream = await this.geyserClient.subscribe();
       this.isStreamActive = true;
 
-      // Subscribe to updates
-      await this.stream.subscribe(request);
-
-      console.log('[YELLOWSTONE] gRPC stream subscription active');
+      // Subscribe to updates with optional auth metadata
+      if (this.config.yellowstoneAuthToken) {
+        // Solinfra-style Bearer token authentication
+        const metadata = new this.geyserClient.Metadata();
+        metadata.set('Authorization', `Bearer ${this.config.yellowstoneAuthToken}`);
+        await this.stream.subscribe(request, metadata);
+        console.log('[YELLOWSTONE] gRPC stream subscription active (with auth)');
+      } else {
+        await this.stream.subscribe(request);
+        console.log('[YELLOWSTONE] gRPC stream subscription active');
+      }
 
       // Process incoming messages
       this.processStream();
