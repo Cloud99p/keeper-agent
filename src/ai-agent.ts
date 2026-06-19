@@ -162,13 +162,13 @@ export class FailureReasoningAgent {
     await this.proofChain.recordDecision(
       {
         bundleId: context.bundleId || 'unknown',
-        failureType: type,
-        stage,
+        failureType,
+        stage: failureStage,
         submissionSlot,
         blockhashAge,
-        slotConditions: { tipLamports: context.tipLamports, skipRate: context.skipRate },
+        slotConditions: { skipRate: slotConditions.skipRate },
         recentTips: [],
-        submissionLatency: latency,
+        submissionLatency,
       },
       decision,
       { contributingFactors, confidence }
@@ -177,12 +177,12 @@ export class FailureReasoningAgent {
     // Record in knowledge graph for pattern learning
     await this.knowledgeGraph.recordBundle({
       bundleId: context.bundleId || `bundle_${Date.now()}`,
-      status: stage,
+      status: failureStage,
       submittedSlot: submissionSlot,
-      tipLamports: context.tipLamports,
-      healthScore: context.healthScore || 50,
-      latencyMs: latency,
-      failureType: type,
+      tipLamports: 0,
+      healthScore: 50,
+      latencyMs: submissionLatency,
+      failureType,
       submittedAt: Date.now(),
     });
 
