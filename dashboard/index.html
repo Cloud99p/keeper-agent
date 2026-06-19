@@ -543,6 +543,9 @@
             // Live feed
             updateBundleList();
 
+            // AI Decisions
+            updateAiDecisions();
+
             // Update timestamp
             document.getElementById('lastUpdated').textContent = 'Last updated: Just now';
         }
@@ -586,6 +589,69 @@
                             <span>Slot: ${b.submission_slot || b.submittedSlot || 'N/A'}</span>
                             <span>Tip: ${b.tip_amount || b.tipLamports || 0} lamports</span>
                             ${b.failure?.type ? `<span style="color: #ff4444">Error: ${b.failure.type}</span>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Update AI decisions panel
+        function updateAiDecisions() {
+            const container = document.getElementById('aiDecisions');
+            
+            // Extract AI decisions from bundles
+            const aiDecisions = bundles
+                .filter(b => b.failure?.agent_reasoning)
+                .map(b => {
+                    try {
+                        const reasoning = typeof b.failure.agent_reasoning === 'string' 
+                            ? JSON.parse(b.failure.agent_reasoning) 
+                            : b.failure.agent_reasoning;
+                        return {
+                            bundleId: b.bundle_id || b.bundleId,
+                            ...reasoning,
+                            timestamp: b.stages?.submitted?.timestamp || Date.now()
+                        };
+                    } catch (e) {
+                        return {
+                            bundleId: b.bundle_id || b.bundleId,
+                            action: 'unknown',
+                            confidence: 0,
+                            tip_adjustment: 0,
+                            timestamp: b.stages?.submitted?.timestamp || Date.now()
+                        };
+                    }
+                })
+                .reverse()
+                .slice(0, 10);
+            
+            if (aiDecisions.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/>
+                        </svg>
+                        <p>No AI decisions yet</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = aiDecisions.map(d => {
+                const actionIcon = d.action === 'retry' ? '🔄' : d.action === 'abort' ? '⛔' : '⏳';
+                const actionColor = d.action === 'retry' ? '#00ff88' : d.action === 'abort' ? '#ff4444' : '#ffaa00';
+                
+                return `
+                    <div class="decision-item" style="border-left-color: ${actionColor}">
+                        <div class="decision-header">
+                            <span style="font-weight: bold; color: ${actionColor}">${actionIcon} ${d.action.toUpperCase()}</span>
+                            <span class="decision-time">#${d.bundleId?.slice(-6)}</span>
+                        </div>
+                        <div class="decision-text" style="font-size: 0.8em; margin: 8px 0;">
+                            <div>Confidence: <strong style="color: #00d9ff">${(d.confidence * 100).toFixed(0)}%</strong></div>
+                            <div>Tip: <strong style="color: #ffaa00">${d.tip_adjustment > 0 ? '+' : ''}${d.tip_adjustment.toFixed(0)}%</strong></div>
+                            <div>Delay: <strong>${d.delay_ms || 0}ms</strong></div>
+                            <div>Blockhash: <strong>${d.blockhash_refresh ? '🔄 Refresh' : '➡️ Keep'}</strong></div>
                         </div>
                     </div>
                 `;
