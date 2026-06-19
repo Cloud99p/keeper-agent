@@ -1,20 +1,19 @@
 /**
- * Real-time Slot Streaming Layer
+ * Real-time Slot Streaming Layer (KAIROS-style gRPC)
  * 
- * Supports both:
- * - REAL Yellowstone gRPC streaming (SolInfra)
- * - MOCK HTTP polling (fallback when no credentials)
+ * Emits: slot events (processed/confirmed/finalized) via Yellowstone gRPC
+ * Falls back to HTTP polling if no credentials configured
  * 
- * Emits: slot, connected, disconnected, error
+ * Usage:
+ *  const stream = new SlotStream(rpcUrl, grpcEndpoint, grpcToken)
+ *  stream.on('slot', (event) => console.log(event))
+ *  await stream.start()
  */
 
 import { EventEmitter } from 'events';
 import { Connection } from '@solana/web3.js';
 import * as fs from 'fs';
 import * as path from 'path';
-import { fileURLToPath } from 'url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export interface SlotEvent {
   slot: number;
@@ -31,8 +30,6 @@ export class SlotStream extends EventEmitter {
   private isMock: boolean;
   private grpcClient: any = null;
   private grpcStream: any = null;
-  
-  // Configuration
   private grpcEndpoint?: string;
   private grpcToken?: string;
 
@@ -41,8 +38,6 @@ export class SlotStream extends EventEmitter {
     this.connection = new Connection(rpcUrl, 'confirmed');
     this.grpcEndpoint = grpcEndpoint;
     this.grpcToken = grpcToken;
-    
-    // Mock mode when no Yellowstone endpoint is configured
     this.isMock = !grpcEndpoint || grpcEndpoint.trim() === '';
     
     console.log(`[STREAM] Mode: ${this.isMock ? 'MOCK (HTTP polling)' : 'REAL (Yellowstone gRPC)'}`);
@@ -52,13 +47,12 @@ export class SlotStream extends EventEmitter {
     if (this.running) return;
     this.running = true;
 
-    // Get current slot from RPC to start from the right place
     try {
       this.currentSlot = await this.connection.getSlot('processed');
       console.log(`[STREAM] Starting from slot ${this.currentSlot}`);
     } catch (error: any) {
       console.warn(`[STREAM] Failed to get current slot: ${error.message}`);
-      this.currentSlot = 470000000; // Fallback
+      this.currentSlot = 470000000;
     }
 
     if (this.isMock) {
@@ -89,10 +83,9 @@ export class SlotStream extends EventEmitter {
     console.log('[STREAM] Stopped');
   }
 
-  // ============================================================
-  // MOCK STREAM — HTTP polling every 400ms
-  // ============================================================
-
+  /**
+   * MOCK STREAM - HTTP polling every 400ms
+   */
   private startMockStream(): void {
     console.log('[STREAM] Mock stream started — polling every 400ms');
 
@@ -103,16 +96,13 @@ export class SlotStream extends EventEmitter {
         const slot = await this.connection.getSlot('processed');
         
         if (slot > this.currentSlot) {
-          // Emit processed event for each new slot
           for (let s = this.currentSlot + 1; s <= slot; s++) {
             this.emitSlot(s, 'processed');
             
-            // Schedule confirmed event (2 slots / ~800ms later)
             setTimeout(() => {
               if (this.running) this.emitSlot(s, 'confirmed');
             }, 800);
             
-            // Schedule finalized event (32 slots / ~12.8s later)
             setTimeout(() => {
               if (this.running) this.emitSlot(s, 'finalized');
             }, 12800);
@@ -126,10 +116,9 @@ export class SlotStream extends EventEmitter {
     }, 400);
   }
 
-  // ============================================================
-  // REAL STREAM — Yellowstone gRPC via @grpc/grpc-js
-  // ============================================================
-
+  /**
+   * REAL STREAM - Yellowstone gRPC via @grpc/grpc-js (KAIROS approach)
+   */
   private async startRealStream(): Promise<void> {
     if (!this.grpcEndpoint || !this.grpcToken) {
       console.error('[STREAM] Cannot start real stream - missing credentials');
@@ -145,7 +134,7 @@ export class SlotStream extends EventEmitter {
       const protoLoader = await import('@grpc/proto-loader');
 
       // Download Yellowstone proto if not exists
-      const protoPath = path.join(__dirname, '../../yellowstone.proto');
+      const protoPath = path.join(process.cwd(), 'yellowstone.proto');
       
       if (!fs.existsSync(protoPath)) {
         console.log('[STREAM] Downloading Yellowstone proto definition...');
@@ -154,7 +143,7 @@ export class SlotStream extends EventEmitter {
         );
         const protoContent = await response.text();
         fs.writeFileSync(protoPath, protoContent);
-        console.log('[STREAM] Proto file saved to', protoPath);
+        console.log('[STREAM] Proto file saved');
       }
 
       // Load proto definition
@@ -221,7 +210,6 @@ export class SlotStream extends EventEmitter {
           const slotNum = parseInt(data.slot.slot);
           if (isNaN(slotNum)) return;
 
-          // Map status from gRPC to our types
           const statusStr = (data.slot.status || '').toLowerCase();
           let status: 'processed' | 'confirmed' | 'finalized' = 'processed';
           
@@ -260,10 +248,6 @@ export class SlotStream extends EventEmitter {
     }
   }
 
-  // ============================================================
-  // HELPERS
-  // ============================================================
-
   private emitSlot(slot: number, status: 'processed' | 'confirmed' | 'finalized', parent?: number): void {
     const event: SlotEvent = {
       slot,
@@ -274,7 +258,6 @@ export class SlotStream extends EventEmitter {
     
     this.emit('slot', event);
     
-    // Update current slot tracking
     if (status === 'processed' && slot > this.currentSlot) {
       this.currentSlot = slot;
     }
