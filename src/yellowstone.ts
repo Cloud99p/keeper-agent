@@ -148,18 +148,18 @@ export class YellowstoneService {
   }
 
   /**
-   * Start gRPC stream with full subscription (or HTTP RPC fallback)
+   * Start gRPC stream with full subscription (or WebSocket fallback for Solinfra)
    */
   private async startGrpcStream(): Promise<void> {
-    // Check if using HTTP RPC fallback (devnet or non-gRPC endpoints)
-    const isHttpFallback = 
-      this.config.yellowstoneRpcUrl.includes('devnet') ||
-      this.config.yellowstoneRpcUrl.includes('/sol') ||  // Solana RPC endpoint
-      this.config.yellowstoneRpcUrl.includes('api_key');  // API key auth (Solinfra style)
+    // Check if using Solinfra WebSocket endpoint
+    const isSolinfra = 
+      this.config.yellowstoneRpcUrl.includes('solinfra') ||
+      this.config.yellowstoneRpcUrl.includes('/sol') ||
+      this.config.yellowstoneRpcUrl.includes('api_key');
     
-    if (isHttpFallback) {
-      console.log('[YELLOWSTONE] HTTP RPC detected - starting HTTP RPC slot subscription');
-      await this.startHttpRpcSubscription();
+    if (isSolinfra) {
+      console.log('[YELLOWSTONE] Solinfra endpoint detected - starting WebSocket subscription');
+      await this.startWebSocketSubscription();
       return;
     }
 
@@ -221,28 +221,66 @@ export class YellowstoneService {
   }
 
   /**
-   * HTTP RPC slot subscription (fallback for devnet)
+   * WebSocket slot subscription (Solinfra format)
    */
-  private async startHttpRpcSubscription(): Promise<void> {
+  private async startWebSocketSubscription(): Promise<void> {
     try {
-      const subscriptionId = this.rpcConnection.onSlotChange(async (slotInfo) => {
-        const update: SlotUpdate = {
-          slot: slotInfo.slot,
-          timestamp: Date.now(),
-          parent: slotInfo.parent,
-          root: slotInfo.root,
-        };
+      // Build Solinfra WebSocket URL from HTTP RPC URL
+      const httpUrl = this.config.yellowstoneRpcUrl;
+      const wsUrl = httpUrl
+        .replace('https://', 'wss://')
+        .replace('http://', 'ws://');
 
-        this.lastSlot = update.slot;
-        this.enqueueEvent(update);
-        this.notifySubscribers(update);
+      console.log('[YELLOWSTONE] Connecting to WebSocket:', wsUrl);
+      
+      const ws = new WebSocket(wsUrl);
+      
+      await new Promise<void>((resolve, reject) => {
+        ws.onopen = () => {
+          console.log('[YELLOWSTONE] WebSocket connected');
+          // Subscribe to slot updates
+          ws.send(JSON.stringify({
+            jsonrpc: '2.0',
+            id: 1,
+            method: 'slotSubscribe',
+            params: [],
+          }));
+          resolve();
+        };
+        
+        ws.onerror = (error) => {
+          console.error('[YELLOWSTONE] WebSocket error:', error);
+          reject(error);
+        };
+        
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.result && data.result.value) {
+              const update: SlotUpdate = {
+                slot: data.result.value.slot,
+                timestamp: Date.now(),
+                parent: data.result.value.parent || data.result.value.slot - 1,
+                root: data.result.value.root || data.result.value.slot - 1,
+              };
+              
+              this.lastSlot = update.slot;
+              this.enqueueEvent(update);
+              this.notifySubscribers(update);
+            }
+          } catch (err: any) {
+            console.error('[YELLOWSTONE] Failed to parse WebSocket message:', err.message);
+          }
+        };
       });
 
-      console.log('[YELLOWSTONE] HTTP RPC slot subscription active, ID:', subscriptionId);
       this.reconnectAttempts = 0;
+      this.isStreamActive = true;
+      console.log('[YELLOWSTONE] WebSocket slot subscription active');
 
     } catch (error: any) {
-      console.error('[YELLOWSTONE] HTTP RPC subscription error:', error.message);
+      console.error('[YELLOWSTONE] WebSocket subscription error:', error.message);
+      this.isStreamActive = false;
       this.scheduleReconnect();
     }
   }
