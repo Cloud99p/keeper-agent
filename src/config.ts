@@ -152,8 +152,11 @@ function validateConfig(config: Config): void {
   const errors: string[] = [];
 
   // Validate URLs
-  if (!config.yellowstoneRpcUrl.startsWith('http')) {
-    errors.push('YELLOWSTONE_RPC_URL must be a valid HTTP(S) URL');
+  // Yellowstone can be HTTP(S) or gRPC (host:port format)
+  const isHttpUrl = config.yellowstoneRpcUrl.startsWith('http');
+  const isGrpcEndpoint = config.yellowstoneRpcUrl.includes(':') && !config.yellowstoneRpcUrl.startsWith('http');
+  if (!isHttpUrl && !isGrpcEndpoint) {
+    errors.push('YELLOWSTONE_RPC_URL must be a valid HTTP(S) URL or gRPC endpoint (host:port)');
   }
 
   if (!config.jitoBlockEngineUrl.startsWith('http')) {
