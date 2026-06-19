@@ -188,11 +188,11 @@ export class FailureReasoningAgent {
 
     // Learn from this outcome (Hebbian learning)
     await this.hebbianOptimizer.learn({
-      tipLamports: context.tipLamports,
-      status: stage,
-      healthScore: context.healthScore || 50,
-      skipRate: context.skipRate || 0.15,
-      leaderQuality: context.leaderQuality || 0.5,
+      tipLamports: 0,
+      status: failureStage,
+      healthScore: 50,
+      skipRate: slotConditions.skipRate || 0.15,
+      leaderQuality: slotConditions.leaderQuality || 0.5,
     });
 
     // Determine if retry should happen
