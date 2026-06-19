@@ -460,6 +460,17 @@ export class JitoService {
             submissionLatency,
           });
 
+          // SAVE AI REASONING TO LIFECYCLE LOG
+          const reasoningSummary = JSON.stringify({
+            confidence: agentDecision.reasoning.confidence,
+            factors: agentDecision.reasoning.contributing_factors,
+            action: agentDecision.reasoning.decision.action,
+            tip_adjustment: agentDecision.tipAdjustment,
+            delay_ms: agentDecision.delayMs,
+            blockhash_refresh: agentDecision.refreshBlockhash,
+          });
+          this.lifecycle.updateFailureWithReasoning(bundleId, 'processed', 'ai_analysis', reasoningSummary);
+
           // AI AGENT DECIDES: Retry or Abort?
           if (!agentDecision.shouldRetry || retryCount >= maxRetries) {
             console.log('[AGENT] Decision: ABORT (no retry recommended or max retries reached)');
