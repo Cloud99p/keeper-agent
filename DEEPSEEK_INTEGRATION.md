@@ -26,6 +26,8 @@ The Solana TX-Stack now integrates **DeepSeek API** for enhanced AI-powered fail
 
 ## Architecture
 
+📄 **Full System Architecture**: [View on Notion](https://magic-yellowhorn-e62.notion.site/3835e3a18d3f80a693e6ce691e28be89)
+
 ### Decision Flow
 
 ```

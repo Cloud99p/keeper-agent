@@ -9,6 +9,8 @@ Production-grade Solana transaction infrastructure with Jito MEV bundles, real-t
 [![Solana](https://img.shields.io/badge/solana-1.87.6-purple)](https://solana.com/)
 [![Tested](https://img.shields.io/badge/tested-65%2B%20bundles-green)]()
 
+📄 **Architecture Document**: [View on Notion](https://magic-yellowhorn-e62.notion.site/3835e3a18d3f80a693e6ce691e28be89)
+
 ---
 
 ## 🚀 Quick Start
@@ -521,7 +523,9 @@ solana-tx-stack/
 
 **Issues:** https://github.com/Cloud99p/solana-tx-stack/issues
 
-**Documentation:** See `ARCHITECTURE.md` in workspace for detailed system design
+**Architecture Document:** https://magic-yellowhorn-e62.notion.site/3835e3a18d3f80a693e6ce691e28be89
+
+**Local Documentation:** See `ARCHITECTURE.md` in workspace for detailed system design
 
 ---
 
