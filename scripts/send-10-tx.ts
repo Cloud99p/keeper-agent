@@ -5,9 +5,13 @@
  * Minimal code, maximum reliability.
  */
 
+// Load environment variables FIRST
+import 'dotenv/config';
+
 import { Connection, Keypair, SystemProgram, LAMPORTS_PER_SOL, PublicKey, Transaction } from '@solana/web3.js';
 import fs from 'fs';
 import path from 'path';
+import { appendBundlesToLifecycle } from '../src/utils/append-lifecycle.js';
 
 async function main() {
   console.log('='.repeat(80));
@@ -103,14 +107,22 @@ async function main() {
   const file = `evidence/mainnet_${Date.now()}.json`;
   fs.writeFileSync(file, JSON.stringify(evidence, null, 2));
 
-  // Also save to lifecycle_log.json
-  try {
-    const log = JSON.parse(fs.readFileSync('lifecycle_log.json', 'utf-8'));
-    log.bundles = [...(log.bundles || []), ...results];
-    fs.writeFileSync('lifecycle_log.json', JSON.stringify(log, null, 2));
-  } catch {
-    fs.writeFileSync('lifecycle_log.json', JSON.stringify({ bundles: results }, null, 2));
-  }
+  // Append to lifecycle_log.json (doesn't overwrite!)
+  const bundlesForLifecycle = results.map((r: any) => ({
+    bundleId: r.signature || `failed_${Date.now()}`,
+    type: 'simple_tx',
+    status: r.status === 'sent' ? 'confirmed' : 'failed',
+    stage: r.status === 'sent' ? 'finalized' : 'failed',
+    submittedSlot: r.slot || 0,
+    tipLamports: r.tip || 0,
+    submittedAt: Date.now(),
+    testType: 'mainnet-10-tx',
+  }));
+  
+  const log = appendBundlesToLifecycle(bundlesForLifecycle, {
+    testType: 'mainnet-10-tx',
+  });
+  console.log(`💾 Appended to lifecycle_log.json (total: ${log.metadata.totalBundles} bundles)`);
 
   console.log('\n' + '='.repeat(80));
   console.log('RESULTS');
