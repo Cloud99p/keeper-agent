@@ -24,6 +24,7 @@ import { FailureContext, FailureType, BundleStage } from './lifecycle.js';
 import { DecisionProofChain } from './proof-chain.js';
 import { TransactionKnowledgeGraph } from './knowledge-graph.js';
 import { HebbianTipOptimizer } from './hebbian-optimizer.js';
+import { DeepSeekClient, DeepSeekDecision } from './deepseek-client.js';
 
 export interface AgentDecision {
   action: 'retry' | 'abort' | 'wait_and_retry';
@@ -31,6 +32,8 @@ export interface AgentDecision {
   blockhash_refresh: boolean;
   delay_ms: number;
   reasoning_summary: string;
+  ai_analysis?: string;  // Optional AI-generated analysis
+  ai_confidence?: number; // Optional AI confidence score
 }
 
 export interface AgentReasoning {
@@ -67,6 +70,7 @@ export class FailureReasoningAgent {
   private proofChain: DecisionProofChain;
   private knowledgeGraph: TransactionKnowledgeGraph;
   private hebbianOptimizer: HebbianTipOptimizer;
+  private deepSeekClient: DeepSeekClient;
 
   constructor(config: Config) {
     this.config = config;
@@ -74,6 +78,11 @@ export class FailureReasoningAgent {
     this.proofChain = new DecisionProofChain();
     this.knowledgeGraph = new TransactionKnowledgeGraph();
     this.hebbianOptimizer = new HebbianTipOptimizer();
+    this.deepSeekClient = new DeepSeekClient(config);
+    
+    if (this.deepSeekClient.isEnabled()) {
+      console.log('[AGENT] DeepSeek AI enhancement enabled:', this.deepSeekClient.getModel());
+    }
   }
 
   /**
@@ -104,11 +113,25 @@ export class FailureReasoningAgent {
     console.log('[AGENT] Failure Analysis Started');
     console.log('='.repeat(60));
 
-    // Step 1: Observe and log the failure
+    // Step 1: Get AI-enhanced analysis from DeepSeek (if enabled)
+    let aiDecision: DeepSeekDecision | null = null;
+    if (this.deepSeekClient.isEnabled()) {
+      console.log('[AGENT] Requesting DeepSeek AI analysis...');
+      aiDecision = await this.deepSeekClient.analyzeFailure(context);
+      if (aiDecision) {
+        console.log('[AGENT] DeepSeek AI analysis received:', {
+          action: aiDecision.action,
+          confidence: aiDecision.confidence,
+          reasoning: aiDecision.reasoning_summary,
+        });
+      }
+    }
+
+    // Step 2: Observe and log the failure (local reasoning)
     const failureObserved = this.describeFailure(failureType, failureStage, submissionLatency);
     console.log(`[AGENT] Failure observed: ${failureObserved}`);
 
-    // Step 2: Analyze contributing factors from live data
+    // Step 3: Analyze contributing factors from live data
     const contributingFactors = this.identifyContributingFactors(
       failureType,
       blockhashAge,
@@ -119,12 +142,12 @@ export class FailureReasoningAgent {
     console.log('[AGENT] Contributing factors:');
     contributingFactors.forEach(factor => console.log(`  - ${factor}`));
 
-    // Step 3: Calculate confidence based on signal clarity
+    // Step 4: Calculate confidence based on signal clarity
     const confidence = this.calculateConfidence(context, contributingFactors);
-    console.log(`[AGENT] Confidence: ${confidence.toFixed(2)}`);
+    console.log(`[AGENT] Local Confidence: ${confidence.toFixed(2)}`);
 
-    // Step 4: Derive decision from data (NOT hardcoded)
-    const decision = this.deriveDecision(
+    // Step 5: Derive decision from data (NOT hardcoded)
+    const localDecision = this.deriveDecision(
       failureType,
       failureStage,
       blockhashAge,
@@ -135,11 +158,14 @@ export class FailureReasoningAgent {
       confidence,
       submissionLatency
     );
-    console.log('[AGENT] Decision:', decision.action);
-    console.log(`  - Tip adjustment: ${decision.tip_adjustment_percent.toFixed(1)}%`);
-    console.log(`  - Blockhash refresh: ${decision.blockhash_refresh}`);
-    console.log(`  - Delay: ${decision.delay_ms}ms`);
-    console.log(`  - Reasoning: ${decision.reasoning_summary}`);
+    console.log('[AGENT] Local Decision:', localDecision.action);
+    console.log(`  - Tip adjustment: ${localDecision.tip_adjustment_percent.toFixed(1)}%`);
+    console.log(`  - Blockhash refresh: ${localDecision.blockhash_refresh}`);
+    console.log(`  - Delay: ${localDecision.delay_ms}ms`);
+    console.log(`  - Reasoning: ${localDecision.reasoning_summary}`);
+
+    // Step 6: Combine AI and local reasoning (AI gets slight preference if high confidence)
+    const decision = this.combineDecisions(aiDecision, localDecision, confidence);
 
     // Step 5: Create full reasoning record
     const reasoning: AgentReasoning = {
@@ -589,6 +615,83 @@ export class FailureReasoningAgent {
       delay_ms: delayMs,
       reasoning_summary: reasoningSummary,
     };
+  }
+
+  /**
+   * Combine AI and local decisions
+   * 
+   * Strategy:
+   * - If AI is enabled and has high confidence (> 0.7), use AI decision
+   * - If AI confidence is moderate (0.5-0.7), blend with local decision
+   * - If AI is disabled or low confidence (< 0.5), use local decision
+   */
+  private combineDecisions(
+    aiDecision: DeepSeekDecision | null,
+    localDecision: AgentDecision,
+    localConfidence: number
+  ): AgentDecision {
+    // No AI decision available, use local
+    if (!aiDecision) {
+      console.log('[AGENT] Using local reasoning (AI unavailable)');
+      return localDecision;
+    }
+
+    // AI has high confidence, prefer AI decision
+    if (aiDecision.confidence > 0.7) {
+      console.log(`[AGENT] Using AI decision (high confidence: ${aiDecision.confidence.toFixed(2)})`);
+      return {
+        action: aiDecision.action,
+        tip_adjustment_percent: aiDecision.tip_adjustment_percent,
+        blockhash_refresh: aiDecision.blockhash_refresh,
+        delay_ms: aiDecision.delay_ms,
+        reasoning_summary: `${aiDecision.reasoning_summary} [AI-enhanced]`,
+        ai_analysis: aiDecision.ai_analysis,
+        ai_confidence: aiDecision.confidence,
+      };
+    }
+
+    // AI has moderate confidence, blend decisions
+    if (aiDecision.confidence >= 0.5) {
+      console.log(`[AGENT] Blending AI + local decisions (AI confidence: ${aiDecision.confidence.toFixed(2)})`);
+      
+      // Weight: AI gets 60%, local gets 40% for moderate confidence
+      const aiWeight = 0.6;
+      const localWeight = 0.4;
+
+      // Blend tip adjustment
+      const blendedTip = Math.round(
+        (aiDecision.tip_adjustment_percent * aiWeight + 
+         localDecision.tip_adjustment_percent * localWeight) * 10
+      ) / 10;
+
+      // Blend delay
+      const blendedDelay = Math.round(
+        aiDecision.delay_ms * aiWeight + 
+        localDecision.delay_ms * localWeight
+      );
+
+      // Use AI action if it differs and AI confidence is higher
+      const action = aiDecision.confidence > localConfidence 
+        ? aiDecision.action 
+        : localDecision.action;
+
+      // Use blockhash refresh if either recommends it (conservative)
+      const blockhashRefresh = aiDecision.blockhash_refresh || localDecision.blockhash_refresh;
+
+      return {
+        action,
+        tip_adjustment_percent: blendedTip,
+        blockhash_refresh: blockhashRefresh,
+        delay_ms: blendedDelay,
+        reasoning_summary: `${localDecision.reasoning_summary} + ${aiDecision.reasoning_summary} [AI-blended]`,
+        ai_analysis: aiDecision.ai_analysis,
+        ai_confidence: aiDecision.confidence,
+      };
+    }
+
+    // AI has low confidence, use local decision
+    console.log(`[AGENT] Using local decision (AI low confidence: ${aiDecision.confidence.toFixed(2)})`);
+    return localDecision;
   }
 
   /**

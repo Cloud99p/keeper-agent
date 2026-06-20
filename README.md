@@ -271,15 +271,41 @@ npm run dashboard
 
 ## 🧠 AI Agent System
 
+### DeepSeek Integration
+
+The AI Agent now integrates **DeepSeek API** for enhanced reasoning:
+
+- **AI-Enhanced Analysis**: DeepSeek's LLM provides contextual failure analysis
+- **Confidence Scoring**: AI confidence (0-1) combined with local reasoning
+- **Adaptive Decision-Making**: Blends AI insights with on-chain data
+- **Fallback Safety**: Local reasoning used if API unavailable
+
+**Configuration** (in `.env`):
+```bash
+AI_API_KEY=sk-your-deepseek-api-key-here
+AI_MODEL=deepseek-chat  # or deepseek-reasoner for complex reasoning
+```
+
 ### How It Works
 
 1. **Failure Detection** - Bundle submission fails or times out
 2. **Context Collection** - Gather slot conditions, leader quality, congestion
-3. **Analysis** - AI identifies contributing factors
-4. **Decision** - Retry/abort with parameters (tip adjustment, delay, blockhash refresh)
-5. **Proof Generation** - SHA-256 hash of decision for audit trail
-6. **Learning** - Update knowledge graph and Hebbian weights
-7. **Execution** - Apply AI decision to retry logic
+3. **AI Analysis** - DeepSeek API analyzes failure context (if enabled)
+4. **Local Analysis** - On-chain data analysis with deterministic logic
+5. **Decision Blending** - Combines AI + local reasoning based on confidence
+6. **Decision** - Retry/abort with parameters (tip adjustment, delay, blockhash refresh)
+7. **Proof Generation** - SHA-256 hash of decision for audit trail
+8. **Learning** - Update knowledge graph and Hebbian weights
+9. **Execution** - Apply AI decision to retry logic
+
+### Decision Blending Strategy
+
+| AI Confidence | Strategy | Description |
+|---------------|----------|-------------|
+| **> 0.7** | AI-Primary | Use AI decision (high confidence) |
+| **0.5 - 0.7** | Blended | 60% AI + 40% local reasoning |
+| **< 0.5** | Local-Primary | Use local reasoning (AI uncertain) |
+| **Unavailable** | Local-Only | Fallback to deterministic logic |
 
 ### Decision Structure
 
