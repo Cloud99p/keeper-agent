@@ -1,0 +1,423 @@
+{
+  "testType": "full-capability-demonstration",
+  "timestamp": 1781981874856,
+  "wallet": "8ifrorg6DFECBXFA6fikQ5YkZAhihcqCi72A9shiuuxU",
+  "network": "mainnet-beta",
+  "config": {
+    "totalBundles": 12,
+    "normalBundles": 6,
+    "failureScenarios": 6,
+    "tipLamports": 3000,
+    "delayBetweenBundles": 15000
+  },
+  "bundles": [
+    {
+      "bundleId": "37ZrN736s3txs6xDVjQwYoWTexKXe3JRh9P37D38igYgCmf3bY8rHFWtMLZXvWUgN2tiAqovaPuaT7UeX619CRAb",
+      "type": "normal",
+      "stage": "confirmed",
+      "submittedSlot": 427781773,
+      "submittedAt": 1781981542187,
+      "tipLamports": 3000,
+      "status": "confirmed",
+      "network": "mainnet-beta",
+      "testPhase": "normal",
+      "confirmedAt": 1781981547215
+    },
+    {
+      "bundleId": "BCzUWHwQa4PLWC9RUckfHCwaDpkV6iK7m8WKqEAPaJ4T45VtVJrgW9ejQr3supnhmnGvf4zZbhSv2bx2wYXGwg1",
+      "type": "normal",
+      "stage": "confirmed",
+      "submittedSlot": 427781829,
+      "submittedAt": 1781981563800,
+      "tipLamports": 3000,
+      "status": "confirmed",
+      "network": "mainnet-beta",
+      "testPhase": "normal",
+      "confirmedAt": 1781981568811
+    },
+    {
+      "bundleId": "4Tz7JRz4xJoBTytEDEhozPLiGJLDpJz8yxeEGqWsyehsTGH2gtJsEPbJWLRGmp6z22riRCaWofAcVBf4WMFLxm4T",
+      "type": "normal",
+      "stage": "confirmed",
+      "submittedSlot": 427781885,
+      "submittedAt": 1781981585242,
+      "tipLamports": 3000,
+      "status": "confirmed",
+      "network": "mainnet-beta",
+      "testPhase": "normal",
+      "confirmedAt": 1781981590259
+    },
+    {
+      "bundleId": "63B2QSxTJe89CKZZcGN71JfgwbrKVZounPbpMHn6A2HJfnDGmazRtJBRbx4bWE2T3aPuqX6BWhapWhNqsQJSZKer",
+      "type": "normal",
+      "stage": "confirmed",
+      "submittedSlot": 427781939,
+      "submittedAt": 1781981607059,
+      "tipLamports": 3000,
+      "status": "confirmed",
+      "network": "mainnet-beta",
+      "testPhase": "normal",
+      "confirmedAt": 1781981612185
+    },
+    {
+      "bundleId": "5gqzPtZUTFgFBS2Ajf46neoa9axBqFkFMySimTz7bxcRXH8QawaneLSUXF86mHgxaN5J9TDtMSC8t4Jvw1sKxQpv",
+      "type": "normal",
+      "stage": "confirmed",
+      "submittedSlot": 427781996,
+      "submittedAt": 1781981628759,
+      "tipLamports": 3000,
+      "status": "confirmed",
+      "network": "mainnet-beta",
+      "testPhase": "normal",
+      "confirmedAt": 1781981633770
+    },
+    {
+      "bundleId": "3NPDV4UK2X8qk9PmcvCrQMG8pEZH4d2t5Xgbk6U3mJmA5Sj6pJHd81qQfuTiJarVkHovzGX6QkNAP83AgG6DRmcJ",
+      "type": "normal",
+      "stage": "confirmed",
+      "submittedSlot": 427782050,
+      "submittedAt": 1781981650134,
+      "tipLamports": 3000,
+      "status": "confirmed",
+      "network": "mainnet-beta",
+      "testPhase": "normal",
+      "confirmedAt": 1781981655157
+    },
+    {
+      "bundleId": "u7E2Zb4kMUuUNXMYbJzJUmJuuVSBZxoqThtGUi46h326KZVK8oLKtaFat91bes19FDmrewbkbcBWWBvne5nXYq5",
+      "type": "failure_injection",
+      "failureType": "blockhash_expiry",
+      "stage": "failed",
+      "submittedSlot": 427782107,
+      "submittedAt": 1781981742047,
+      "tipLamports": 3000,
+      "status": "failed",
+      "network": "mainnet-beta",
+      "testPhase": "failure",
+      "aiReasoning": {
+        "failureType": "blockhash_expiry",
+        "confidence": 0.85,
+        "reasoning": "The failure is due to an expired blockhash, which is recoverable by refreshing the blockhash. The blockhash age of 160 slots exceeds the 150-slot validity window by 10 slots, indicating the bundle was submitted too late. Submission latency of 500ms is moderate but contributed to the expiry. Network conditions are favorable: skip rate at 10% (low), congestion at 30% (moderate), and leader quality at 60% (acceptable). The tip market average is 3000 lamports; a 30% increase to ~3900 lamports should make the bundle competitive without overpaying. A 500ms delay allows for blockhash refresh and avoids immediate re-submission into the same expired slot. Confidence is high because the error is clear, the fix is straightforward, and network conditions support a retry.",
+        "action": "retry",
+        "tipAdjustment": 30,
+        "blockhashRefresh": true,
+        "delayMs": 500,
+        "aiAnalyzed": true,
+        "timestamp": 1781981756122,
+        "model": "deepseek-chat",
+        "reasoning_summary": "Blockhash expired due to age (160 slots) and moderate latency; network conditions are manageable with a 30% tip increase to improve landing probability."
+      },
+      "agent_reasoning": {
+        "failure_observed": "blockhash_expiry during submission",
+        "contributing_factors": [
+          "Network conditions suboptimal",
+          "Submission timing misaligned"
+        ],
+        "confidence": 0.85,
+        "decision": {
+          "action": "retry",
+          "tip_adjustment_percent": 30,
+          "blockhash_refresh": true,
+          "delay_ms": 500,
+          "reasoning_summary": "Blockhash expired due to age (160 slots) and moderate latency; network conditions are manageable wit"
+        },
+        "timestamp": 1781981756122,
+        "slot_at_decision": 0
+      },
+      "proofChain": {
+        "decisionId": "decision_1781981756126_9a0c8ac3s",
+        "timestamp": 1781981756126,
+        "context": {
+          "bundleId": "u7E2Zb4kMUuUNXMYbJzJUmJuuVSBZxoqThtGUi46h326KZVK8oLKtaFat91bes19FDmrewbkbcBWWBvne5nXYq5",
+          "failureType": "expired_blockhash",
+          "stage": "submitted"
+        },
+        "inputHash": "2d4a5a638be417a777752946415d9a3c7e7c2cfca7eb863efb3632044124bf49",
+        "outputHash": "46e15a8ed2e704df870c4b5a77e821e10d23d7162f9adbd4bfbbfce01c741780",
+        "reasoningHash": "eb430e2fff895c77f89bdeebadb8be1bc385ec32cfa52f59d66bdd52b79adbe8",
+        "previousProofHash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "signature": "d88d9bbf299cb01da3ee3e5b0a5b6fe2bf5d6f8108868c3445d9f29361668d4d",
+        "status": "recorded"
+      }
+    },
+    {
+      "bundleId": "UYJK8d5ffTLkDShvZgwjGLqqxNmyHTP1U8mUeP2mYUVWK1Z1T9Q1AvVf8ybBeUYpChGz8Yygshph3AAdDC3QMCW",
+      "type": "failure_injection",
+      "failureType": "low_tip",
+      "stage": "failed",
+      "submittedSlot": 427782363,
+      "submittedAt": 1781981772813,
+      "tipLamports": 100,
+      "status": "failed",
+      "network": "mainnet-beta",
+      "testPhase": "failure",
+      "aiReasoning": {
+        "failureType": "low_tip",
+        "confidence": 0.85,
+        "reasoning": "The failure is due to insufficient fees (fee_too_low) in a moderately congested network (30% congestion, 10% skip rate). The current tip of 3000 lamports (median) is not competitive enough. With 140 slots remaining on the blockhash, there's ample time to retry without refreshing. Increasing the tip by 75% to ~5250 lamports positions the bundle above the median and average landed tips, improving inclusion probability. Leader quality at 60% is acceptable but not ideal, so a higher tip compensates. A 500ms delay avoids immediate re-submission during transient congestion spikes. Confidence is high because the error is actionable and network conditions are favorable for retry.",
+        "action": "retry",
+        "tipAdjustment": 75,
+        "blockhashRefresh": false,
+        "delayMs": 500,
+        "aiAnalyzed": true,
+        "timestamp": 1781981787278,
+        "model": "deepseek-chat",
+        "reasoning_summary": "Fee too low with moderate network congestion; increase tip by 75% to 5250 lamports to exceed median landed tip and improve priority, while blockhash is still fresh."
+      },
+      "agent_reasoning": {
+        "failure_observed": "low_tip during submission",
+        "contributing_factors": [
+          "Network conditions suboptimal",
+          "Submission timing misaligned"
+        ],
+        "confidence": 0.85,
+        "decision": {
+          "action": "retry",
+          "tip_adjustment_percent": 75,
+          "blockhash_refresh": false,
+          "delay_ms": 500,
+          "reasoning_summary": "Fee too low with moderate network congestion; increase tip by 75% to 5250 lamports to exceed median "
+        },
+        "timestamp": 1781981787278,
+        "slot_at_decision": 0
+      },
+      "proofChain": {
+        "decisionId": "decision_1781981787279_im1qkusq1",
+        "timestamp": 1781981787279,
+        "context": {
+          "bundleId": "UYJK8d5ffTLkDShvZgwjGLqqxNmyHTP1U8mUeP2mYUVWK1Z1T9Q1AvVf8ybBeUYpChGz8Yygshph3AAdDC3QMCW",
+          "failureType": "fee_too_low",
+          "stage": "submitted"
+        },
+        "inputHash": "34ce089252ea459ee1b8ecbb11ebeb75c6e30498487a74bfcd38b7403240f494",
+        "outputHash": "0ca2efa56bc8458937fb0ebd7cf62b4e961c6b6e834de47bf63aec19e59df715",
+        "reasoningHash": "4d6e19ddac136f205ecd74fc53c19dd7f21899b5553699b555b87cd5a4666a8b",
+        "previousProofHash": "5aa07ac923781c22dee8becda2465138be2956675601db11aed886e2ca5fbd89",
+        "signature": "1fde2fdb9b543ce30099f2d43b7a3d63485966cd851431a6a9046b8c2e2648da",
+        "status": "recorded"
+      }
+    },
+    {
+      "bundleId": "241jd9sPBUWoCzMCNnEborFq7FZMiwXehe5uHbLRehSizwCmtkx6ApRuLeoXyxJp43KVQH1GuNY2S5dLn9BvoHxC",
+      "type": "failure_injection",
+      "failureType": "compute_exceeded",
+      "stage": "failed",
+      "submittedSlot": 427782459,
+      "submittedAt": 1781981810615,
+      "tipLamports": 3000,
+      "status": "failed",
+      "network": "mainnet-beta",
+      "testPhase": "failure",
+      "aiReasoning": {
+        "failureType": "compute_exceeded",
+        "confidence": 0.75,
+        "reasoning": "The failure type 'compute_exceeded' suggests the transaction exceeded the 1.4M compute unit (CU) limit per transaction. This is a recoverable issue, not a permanent error. The blockhash is fresh (10 slots old, 140 remaining), so no refresh needed. Network conditions are moderate (10% skip rate, 30% congestion, 60% leader quality). The current tip of 3000 lamports (median) is reasonable but may not be competitive enough for high-CU transactions. Increasing the tip by 50% (to 4500 lamports) should improve priority in the tip market (range 2000-4000). A 1-second delay allows for better leader scheduling. If the transaction is complex, consider splitting it into multiple smaller transactions to avoid compute limits. Confidence is 0.75 due to the recoverable nature and favorable blockhash age.",
+        "action": "retry",
+        "tipAdjustment": 50,
+        "blockhashRefresh": false,
+        "delayMs": 1000,
+        "aiAnalyzed": true,
+        "timestamp": 1781981827099,
+        "model": "deepseek-chat",
+        "reasoning_summary": "Compute exceeded failure indicates insufficient compute budget; increase tip by 50% to prioritize inclusion and consider splitting the transaction if possible."
+      },
+      "agent_reasoning": {
+        "failure_observed": "compute_exceeded during submission",
+        "contributing_factors": [
+          "Network conditions suboptimal",
+          "Submission timing misaligned"
+        ],
+        "confidence": 0.75,
+        "decision": {
+          "action": "retry",
+          "tip_adjustment_percent": 50,
+          "blockhash_refresh": false,
+          "delay_ms": 1000,
+          "reasoning_summary": "Compute exceeded failure indicates insufficient compute budget; increase tip by 50% to prioritize in"
+        },
+        "timestamp": 1781981827099,
+        "slot_at_decision": 0
+      },
+      "proofChain": {
+        "decisionId": "decision_1781981827101_6d3wocmcz",
+        "timestamp": 1781981827101,
+        "context": {
+          "bundleId": "241jd9sPBUWoCzMCNnEborFq7FZMiwXehe5uHbLRehSizwCmtkx6ApRuLeoXyxJp43KVQH1GuNY2S5dLn9BvoHxC",
+          "failureType": "compute_exceeded",
+          "stage": "submitted"
+        },
+        "inputHash": "316df7ff0e9790425ea41afada3e2e1bfc9d148250675c0286f38892d156da6a",
+        "outputHash": "4178a0c0d633bc8b8cd853baaa112e3ebe6a4571a78d84fafc086097c3f7888b",
+        "reasoningHash": "1160a724fea592589de71f053d76908addfbfca48176b7e81de628f54d483a71",
+        "previousProofHash": "ae75a675b7f71226598cea7b6e6f67ab3589599705c014dbaa8f27a2679743d1",
+        "signature": "aa64b2e1ffca11f936532c43a7c517cac281ac1fc8765106f8457c683f57f87c",
+        "status": "recorded"
+      }
+    },
+    {
+      "bundleId": "failed_network_delay_3",
+      "type": "failure_injection",
+      "failureType": "network_delay",
+      "stage": "failed",
+      "submittedSlot": 0,
+      "submittedAt": 1781981854742,
+      "tipLamports": 0,
+      "status": "failed",
+      "error": "failed to get recent blockhash: TypeError: fetch failed",
+      "network": "mainnet-beta",
+      "testPhase": "failure",
+      "aiReasoning": {
+        "failureType": "timeout",
+        "confidence": 0.75,
+        "reasoning": "Network congestion detected. Transaction propagation delayed.",
+        "action": "wait_and_retry",
+        "tipAdjustment": 1000,
+        "blockhashRefresh": true,
+        "delayMs": 30000,
+        "aiAnalyzed": false,
+        "timestamp": 1781981854742,
+        "model": "fallback-heuristic",
+        "reasoning_summary": "Network congestion - wait and retry"
+      }
+    },
+    {
+      "bundleId": "failed_high_tip_4",
+      "type": "failure_injection",
+      "failureType": "high_tip",
+      "stage": "failed",
+      "submittedSlot": 0,
+      "submittedAt": 1781981864771,
+      "tipLamports": 0,
+      "status": "failed",
+      "error": "fetch failed",
+      "network": "mainnet-beta",
+      "testPhase": "failure",
+      "aiReasoning": {
+        "failureType": "fee_too_high",
+        "confidence": 0.8,
+        "reasoning": "Tip amount significantly above market rate. Economically inefficient.",
+        "action": "retry_with_lower_tip",
+        "tipAdjustment": -2000,
+        "blockhashRefresh": false,
+        "delayMs": 0,
+        "aiAnalyzed": false,
+        "timestamp": 1781981864771,
+        "model": "fallback-heuristic",
+        "reasoning_summary": "Overpaying - reduce tip to P75"
+      }
+    },
+    {
+      "bundleId": "failed_double_spend_5",
+      "type": "failure_injection",
+      "failureType": "double_spend",
+      "stage": "failed",
+      "submittedSlot": 0,
+      "submittedAt": 1781981874792,
+      "tipLamports": 0,
+      "status": "failed",
+      "error": "fetch failed",
+      "network": "mainnet-beta",
+      "testPhase": "failure",
+      "aiReasoning": {
+        "failureType": "invalid_transaction",
+        "confidence": 0.95,
+        "reasoning": "Transaction conflicts with prior submission. Double-spend attempt detected.",
+        "action": "abort",
+        "tipAdjustment": 0,
+        "blockhashRefresh": true,
+        "delayMs": 60000,
+        "aiAnalyzed": false,
+        "timestamp": 1781981874792,
+        "model": "fallback-heuristic",
+        "reasoning_summary": "Double-spend detected - abort and refresh"
+      }
+    }
+  ],
+  "hebbianStats": {
+    "totalSynapses": 2,
+    "avgStrength": 0.5723976893776002,
+    "avgSuccessRate": 0.5,
+    "coreNeurons": 1
+  },
+  "knowledgeGraphStats": {
+    "totalNodes": 11,
+    "totalEdges": 9,
+    "nodesByType": {
+      "failure_pattern": 9,
+      "bundle": 2
+    },
+    "avgConfidence": 1
+  },
+  "proofChainStats": {
+    "summary": {
+      "totalDecisions": 3,
+      "exportedCount": 3,
+      "chainIntegrity": "✅ VERIFIED",
+      "exportedAt": "2026-06-20T18:57:54.841Z"
+    },
+    "proofs": [
+      {
+        "index": -2,
+        "id": "decision_1781981756126_9a0c8ac3s",
+        "timestamp": "2026-06-20T18:55:56.126Z",
+        "context": {
+          "bundleId": "u7E2Zb4kMUuUNXMYbJzJUmJuuVSBZxoqThtGUi46h326KZVK8oLKtaFat91bes19FDmrewbkbcBWWBvne5nXYq5",
+          "failureType": "expired_blockhash",
+          "stage": "submitted"
+        },
+        "hashes": {
+          "input": "2d4a5a638be417a777752946415d9a3c7e7c2cfca7eb863efb3632044124bf49",
+          "output": "46e15a8ed2e704df870c4b5a77e821e10d23d7162f9adbd4bfbbfce01c741780",
+          "reasoning": "eb430e2fff895c77f89bdeebadb8be1bc385ec32cfa52f59d66bdd52b79adbe8",
+          "previous": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        "signature": "d88d9bbf299cb01da3ee3e5b0a5b6fe2bf5d6f8108868c3445d9f29361668d4d",
+        "status": "recorded"
+      },
+      {
+        "index": -1,
+        "id": "decision_1781981787279_im1qkusq1",
+        "timestamp": "2026-06-20T18:56:27.279Z",
+        "context": {
+          "bundleId": "UYJK8d5ffTLkDShvZgwjGLqqxNmyHTP1U8mUeP2mYUVWK1Z1T9Q1AvVf8ybBeUYpChGz8Yygshph3AAdDC3QMCW",
+          "failureType": "fee_too_low",
+          "stage": "submitted"
+        },
+        "hashes": {
+          "input": "34ce089252ea459ee1b8ecbb11ebeb75c6e30498487a74bfcd38b7403240f494",
+          "output": "0ca2efa56bc8458937fb0ebd7cf62b4e961c6b6e834de47bf63aec19e59df715",
+          "reasoning": "4d6e19ddac136f205ecd74fc53c19dd7f21899b5553699b555b87cd5a4666a8b",
+          "previous": "5aa07ac923781c22dee8becda2465138be2956675601db11aed886e2ca5fbd89"
+        },
+        "signature": "1fde2fdb9b543ce30099f2d43b7a3d63485966cd851431a6a9046b8c2e2648da",
+        "status": "recorded"
+      },
+      {
+        "index": 0,
+        "id": "decision_1781981827101_6d3wocmcz",
+        "timestamp": "2026-06-20T18:57:07.101Z",
+        "context": {
+          "bundleId": "241jd9sPBUWoCzMCNnEborFq7FZMiwXehe5uHbLRehSizwCmtkx6ApRuLeoXyxJp43KVQH1GuNY2S5dLn9BvoHxC",
+          "failureType": "compute_exceeded",
+          "stage": "submitted"
+        },
+        "hashes": {
+          "input": "316df7ff0e9790425ea41afada3e2e1bfc9d148250675c0286f38892d156da6a",
+          "output": "4178a0c0d633bc8b8cd853baaa112e3ebe6a4571a78d84fafc086097c3f7888b",
+          "reasoning": "1160a724fea592589de71f053d76908addfbfca48176b7e81de628f54d483a71",
+          "previous": "ae75a675b7f71226598cea7b6e6f67ab3589599705c014dbaa8f27a2679743d1"
+        },
+        "signature": "aa64b2e1ffca11f936532c43a7c517cac281ac1fc8765106f8457c683f57f87c",
+        "status": "recorded"
+      }
+    ],
+    "verificationInstructions": "To verify this chain:\n1. For each proof, calculate SHA-256(input + output + reasoning + previous)\n2. Verify it matches the signature field\n3. For proof N, verify previousProofHash equals SHA-256(proof N-1)\n4. First proof should have previousProofHash = 0000000000000000000000000000000000000000000000000000000000000000\n\nIf all checks pass, the chain is intact and decisions have not been tampered with."
+  },
+  "summary": {
+    "total": 12,
+    "normalSuccess": 6,
+    "failureInjected": 6,
+    "aiAnalyzed": 3,
+    "totalTipsLamports": 24100
+  }
+}
