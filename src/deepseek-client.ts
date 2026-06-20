@@ -50,15 +50,17 @@ export class DeepSeekClient {
   private model: string;
   private baseUrl: string;
   private enabled: boolean;
+  private timeoutMs: number;
 
   constructor(config: Config) {
     this.apiKey = process.env.AI_API_KEY || '';
     this.model = process.env.AI_MODEL || 'deepseek-chat';
     this.baseUrl = 'https://api.deepseek.com/v1';
+    this.timeoutMs = parseInt(process.env.AI_TIMEOUT_MS || '30000', 10); // Default 30s
     this.enabled = !!this.apiKey && this.apiKey !== 'sk-your-deepseek-api-key-here';
     
     if (this.enabled) {
-      console.log('[DEEPSEEK] Client initialized with model:', this.model);
+      console.log('[DEEPSEEK] Client initialized with model:', this.model, `(timeout: ${this.timeoutMs}ms)`);
     } else {
       console.warn('[DEEPSEEK] API key not configured, falling back to local reasoning');
     }
@@ -79,6 +81,10 @@ export class DeepSeekClient {
     try {
       const prompt = this.buildPrompt(context);
       
+      // Create abort controller for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
+
       const response = await fetch(`${this.baseUrl}/chat/completions`, {
         method: 'POST',
         headers: {
@@ -121,7 +127,10 @@ Guidelines:
           temperature: 0.3,
           max_tokens: 1000,
         }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -161,7 +170,11 @@ Guidelines:
       return decision;
 
     } catch (error) {
-      console.error('[DEEPSEEK] API call failed:', error);
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.error(`[DEEPSEEK] API call timed out after ${this.timeoutMs}ms`);
+      } else {
+        console.error('[DEEPSEEK] API call failed:', error);
+      }
       return null; // Fallback to local reasoning
     }
   }

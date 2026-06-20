@@ -185,9 +185,10 @@ export class FailureReasoningAgent {
     console.log('[AGENT] Analysis Complete\n');
 
     // Record decision in cryptographic proof chain
+    const bundleId = `bundle_${Date.now()}_${submissionSlot}`;
     await this.proofChain.recordDecision(
       {
-        bundleId: context.bundleId || 'unknown',
+        bundleId,
         failureType,
         stage: failureStage,
         submissionSlot,
@@ -202,7 +203,7 @@ export class FailureReasoningAgent {
 
     // Record in knowledge graph for pattern learning
     await this.knowledgeGraph.recordBundle({
-      bundleId: context.bundleId || `bundle_${Date.now()}`,
+      bundleId,
       status: failureStage,
       submittedSlot: submissionSlot,
       tipLamports: 0,
