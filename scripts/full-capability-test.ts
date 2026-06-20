@@ -16,6 +16,9 @@
  * Bundles: 12 total (6 normal + 6 failures)
  */
 
+// Load environment variables FIRST
+import 'dotenv/config';
+
 import { Connection, Keypair, SystemProgram, Transaction, LAMPORTS_PER_SOL, PublicKey, ComputeBudgetProgram } from '@solana/web3.js';
 import fs from 'fs';
 import path from 'path';
