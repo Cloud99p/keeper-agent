@@ -65,17 +65,12 @@ npm run dashboard
 |---------|-------------|--------|
 | 🎁 **Jito Bundles** | MEV-protected atomic bundle submission | ✅ Production |
 | 📡 **Real-time gRPC** | Yellowstone streaming via SolInfra (<100ms latency) | ✅ Production |
-| 🤖 **AI Failure Agent** | Autonomous retry decisions with confidence scoring | ✅ Production |
-| 💰 **Dynamic Tips** | Triple-signal calculation from on-chain data | ✅ Production |
+| 🤖 **AI Failure Agent** | Autonomous retry decisions with DeepSeek LLM + local reasoning | ✅ Production |
+| 💰 **Dynamic Tips** | Triple-signal calculation + Hebbian learning optimization | ✅ Production |
 | 📊 **Lifecycle Tracking** | 4-stage monitoring (submitted→processed→confirmed→finalized) | ✅ Production |
 | 🧠 **Knowledge Graph** | Pattern learning from failure scenarios | ✅ NEW |
 | 🔗 **Cryptographic Proofs** | SHA-256 hash chain for audit trail | ✅ NEW |
 | 🔄 **Hebbian Learning** | Neural weight adjustment based on outcomes | ✅ NEW |
-
-### KAIROS-Inspired Features
-
-| Feature | Description | Status |
-|---------|-------------|--------|
 | 📈 **Network Health Score** | 0-100 health from 4 signals (p→c delta, tip trend, Jito coverage, skip rate) | ✅ Added |
 | 🔍 **Pre-flight Simulation** | Catch failures before submission via simulateTransaction() | ✅ Added |
 | 💹 **Tip Efficiency Scoring** | Cost optimization tracking vs P75 | ✅ Added |
