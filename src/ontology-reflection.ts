@@ -35,6 +35,7 @@ export interface OntologyProposal {
 export interface FailureTypeStats {
   type: string;
   count: number;
+  successes: number;
   avgHealthScore: number;
   avgTipLamports: number;
   successRate: number;
@@ -159,6 +160,7 @@ export class OntologySelfReflection {
   private findDuplicateFailureTypes(bundles: any[]): Array<{
     type: string;
     count: number;
+    successRate: number;
     conditions: any;
   }> {
     const typeStats = new Map<string, FailureTypeStats>();
@@ -168,26 +170,34 @@ export class OntologySelfReflection {
       const type = bundle.failureType || 'none';
       
       if (!typeStats.has(type)) {
-        typeStats.set(type, {
+        const newStats: FailureTypeStats = {
           type,
           count: 0,
+          successes: 0,
           avgHealthScore: 0,
           avgTipLamports: 0,
           successRate: 0,
           conditions: {},
-        });
+        };
+        typeStats.set(type, newStats);
       }
       
       const stats = typeStats.get(type)!;
       stats.count++;
       stats.avgHealthScore += bundle.healthScore;
       stats.avgTipLamports += bundle.tipLamports;
+      
+      // Track successes for success rate calculation
+      if (bundle.status === 'confirmed' || bundle.status === 'finalized') {
+        stats.successes = (stats.successes || 0) + 1;
+      }
     }
     
-    // Calculate averages
+    // Calculate averages and success rate
     for (const stats of typeStats.values()) {
       stats.avgHealthScore /= stats.count;
       stats.avgTipLamports /= stats.count;
+      stats.successRate = stats.successes / stats.count;
     }
     
     // Find types with similar conditions

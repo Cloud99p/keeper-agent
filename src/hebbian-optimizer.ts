@@ -28,6 +28,7 @@ export interface SynapticWeight {
   strength: number; // 0.0-1.0 (synaptic strength)
   successes: number;
   failures: number;
+  timesObserved: number; // Total observations (successes + failures)
   lastActivated: number;
   createdAt: number;
 }
@@ -81,6 +82,7 @@ export class HebbianTipOptimizer {
         strength: 0.5, // Start neutral
         successes: 0,
         failures: 0,
+        timesObserved: 0,
         lastActivated: Date.now(),
         createdAt: Date.now(),
       };
@@ -335,7 +337,7 @@ export class HebbianTipOptimizer {
         ? synapse.successes / (synapse.successes + synapse.failures)
         : 0;
       
-      if (synapse.strength > 0.8 && successRate > 0.85 && synapse.timesObserved >= 5) {
+      if (synapse.strength > 0.8 && successRate > 0.85 && (synapse.timesObserved || synapse.successes + synapse.failures) >= 5) {
         coreNeurons.push(synapse);
       }
     }

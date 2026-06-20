@@ -4,7 +4,7 @@
  */
 
 import dotenv from 'dotenv';
-import { Connection, clusterApiUrl, PublicKey } from '@solana/web3.js';
+import { Connection, clusterApiUrl, PublicKey, VersionedTransaction } from '@solana/web3.js';
 import { JitoManager } from './jito-manager.js';
 import { GeyserClient } from './geyser-client.js';
 import { TxBuilder } from './tx-builder.js';
@@ -93,11 +93,19 @@ class SolanaTxStack {
   /**
    * Submit a bundle via Jito
    */
-  async submitBundle(transactions: Buffer[]): Promise<string | null> {
+  async submitBundle(
+    transactionBuffers: Buffer[], 
+    payerPublicKey?: PublicKey
+  ): Promise<string | null> {
     try {
-      const bundleId = await this.jitoManager.submitBundle(transactions);
-      console.log('✅ Bundle submitted:', bundleId);
-      return bundleId;
+      // Convert Buffer[] to VersionedTransaction[]
+      const transactions = transactionBuffers.map(
+        (buf) => VersionedTransaction.deserialize(buf)
+      );
+      
+      const result = await this.jitoManager.submitBundle(transactions, payerPublicKey);
+      console.log('✅ Bundle submitted:', result.bundleId);
+      return result.bundleId;
     } catch (error: any) {
       console.error('❌ Bundle submission failed:', error.message);
       return null;

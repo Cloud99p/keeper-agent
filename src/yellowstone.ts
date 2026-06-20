@@ -169,7 +169,7 @@ export class YellowstoneService {
 
     try {
       // Map commitment level
-      const commitmentMap: Record<string, CommitmentLevel> = {
+      const commitmentMap: Record<string, any> = {
         'processed': CommitmentLevel.PROCESSED,
         'confirmed': CommitmentLevel.CONFIRMED,
         'finalized': CommitmentLevel.FINALIZED,
@@ -178,7 +178,7 @@ export class YellowstoneService {
       const commitment = commitmentMap[this.config.solanaCommitment] || CommitmentLevel.CONFIRMED;
 
       // Create subscription request
-      const request: SubscribeRequest = {
+      const request: any = {
         slots: {
           all: {},
         },

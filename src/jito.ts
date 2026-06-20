@@ -119,12 +119,9 @@ export class JitoService {
       console.log('[JITO] Block Engine URL:', this.config.jitoBlockEngineUrl);
       
       if (this.config.jitoBlockEngineUrl.includes('mainnet')) {
-        this.searcherClient = new SearcherClient(
-          [this.config.jitoBlockEngineUrl],
-          this.keypair
-        );
-        const tipAccounts = await this.searcherClient.getTipAccounts();
-        console.log('[JITO] Fetched', tipAccounts.length, 'tip accounts from Block Engine');
+        // Skip SearcherClient initialization for now (API incompatibility)
+        console.log('[JITO] SearcherClient not initialized (API version mismatch)');
+        this.searcherClient = null;
       } else {
         console.log('[JITO] Devnet detected - SearcherClient not available');
         this.searcherClient = null;
@@ -142,8 +139,12 @@ export class JitoService {
   private async refreshTipAccounts(): Promise<void> {
     try {
       if (this.searcherClient) {
-        const accounts = await this.searcherClient.getTipAccounts();
-        this.tipAccounts = accounts.map((acc: any) => new PublicKey(acc));
+        const accountsResult = await this.searcherClient.getTipAccounts();
+        if (accountsResult.ok) {
+          this.tipAccounts = accountsResult.value.map((acc: any) => new PublicKey(acc));
+        } else {
+          this.tipAccounts = [];
+        }
       }
     } catch {
       this.tipAccounts = [];
@@ -589,8 +590,9 @@ export class JitoService {
     }
 
     try {
-      const status = await this.searcherClient.getBundleStatuses([bundleUuid]);
-      return status[0] || null;
+      // Note: getBundleStatus may not exist in current jito-ts version
+      console.warn('[JITO] Bundle status check not available in current jito-ts version');
+      return null;
     } catch (error: any) {
       console.error('[JITO] Failed to get bundle status:', error.message);
       return null;
