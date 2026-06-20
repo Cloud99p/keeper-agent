@@ -624,26 +624,39 @@
         function updateAiDecisions() {
             const container = document.getElementById('aiDecisions');
             
-            // Extract AI decisions from bundles
+            // Extract AI decisions from bundles (check multiple formats)
             const aiDecisions = bundles
-                .filter(b => b.failure?.agent_reasoning)
+                .filter(b => b.aiReasoning || b.agent_reasoning || b.failure?.agent_reasoning)
                 .map(b => {
                     try {
-                        const reasoning = typeof b.failure.agent_reasoning === 'string' 
-                            ? JSON.parse(b.failure.agent_reasoning) 
-                            : b.failure.agent_reasoning;
+                        // Try different formats
+                        let reasoning = null;
+                        if (b.aiReasoning) {
+                            reasoning = b.aiReasoning;
+                        } else if (b.agent_reasoning) {
+                            reasoning = b.agent_reasoning;
+                        } else if (b.failure?.agent_reasoning) {
+                            reasoning = typeof b.failure.agent_reasoning === 'string' 
+                                ? JSON.parse(b.failure.agent_reasoning) 
+                                : b.failure.agent_reasoning;
+                        }
+                        
                         return {
                             bundleId: b.bundle_id || b.bundleId,
-                            ...reasoning,
-                            timestamp: b.stages?.submitted?.timestamp || Date.now()
+                            failureType: b.failureType || b.failure?.type || reasoning?.failureType || 'unknown',
+                            action: reasoning?.action || reasoning?.decision?.action || 'unknown',
+                            confidence: reasoning?.confidence || reasoning?.decision?.confidence || 0,
+                            reasoning: reasoning?.reasoning || reasoning?.reasoning_summary || reasoning?.decision?.reasoning_summary || 'AI analysis complete',
+                            timestamp: b.submittedAt || b.stages?.submitted?.timestamp || Date.now()
                         };
                     } catch (e) {
                         return {
                             bundleId: b.bundle_id || b.bundleId,
+                            failureType: 'unknown',
                             action: 'unknown',
                             confidence: 0,
-                            tip_adjustment: 0,
-                            timestamp: b.stages?.submitted?.timestamp || Date.now()
+                            reasoning: 'Error parsing AI decision',
+                            timestamp: b.submittedAt || b.stages?.submitted?.timestamp || Date.now()
                         };
                     }
                 })
@@ -663,20 +676,19 @@
             }
             
             container.innerHTML = aiDecisions.map(d => {
-                const actionIcon = d.action === 'retry' ? '🔄' : d.action === 'abort' ? '⛔' : '⏳';
-                const actionColor = d.action === 'retry' ? '#00ff88' : d.action === 'abort' ? '#ff4444' : '#ffaa00';
+                const actionIcon = d.action?.includes('retry') ? '🔄' : d.action === 'abort' ? '⛔' : '⏳';
+                const actionColor = d.action?.includes('retry') ? '#00ff88' : d.action === 'abort' ? '#ff4444' : '#ffaa00';
                 
                 return `
                     <div class="decision-item" style="border-left-color: ${actionColor}">
                         <div class="decision-header">
-                            <span style="font-weight: bold; color: ${actionColor}">${actionIcon} ${d.action.toUpperCase()}</span>
-                            <span class="decision-time">#${d.bundleId?.slice(-6)}</span>
+                            <span style="font-weight: bold; color: ${actionColor}">${actionIcon} ${d.action?.toUpperCase() || 'ANALYZED'}</span>
+                            <span class="decision-time">#${d.bundleId?.slice(-6) || 'N/A'}</span>
                         </div>
-                        <div class="decision-text" style="font-size: 0.8em; margin: 8px 0;">
+                        <div class="decision-text" style="font-size: 0.75em; margin: 8px 0;">
+                            <div style="color: #ff4444; margin-bottom: 5px">Failure: ${d.failureType || 'Unknown'}</div>
                             <div>Confidence: <strong style="color: #00d9ff">${(d.confidence * 100).toFixed(0)}%</strong></div>
-                            <div>Tip: <strong style="color: #ffaa00">${d.tip_adjustment > 0 ? '+' : ''}${d.tip_adjustment.toFixed(0)}%</strong></div>
-                            <div>Delay: <strong>${d.delay_ms || 0}ms</strong></div>
-                            <div>Blockhash: <strong>${d.blockhash_refresh ? '🔄 Refresh' : '➡️ Keep'}</strong></div>
+                            <div style="margin-top: 8px; font-style: italic; color: #aaa">"${d.reasoning?.substring(0, 120) || 'AI analysis complete'}${(d.reasoning?.length || 0) > 120 ? '...' : ''}"</div>
                         </div>
                     </div>
                 `;
