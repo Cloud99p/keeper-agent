@@ -13,11 +13,15 @@
  * Cost: ~0.015 SOL
  */
 
+// Load environment variables FIRST
+import 'dotenv/config';
+
 import { Connection, Keypair, SystemProgram, Transaction, LAMPORTS_PER_SOL, PublicKey, ComputeBudgetProgram } from '@solana/web3.js';
 import fs from 'fs';
 import path from 'path';
 import { DeepSeekClient } from '../src/deepseek-client.js';
 import { loadConfig } from '../src/config.js';
+import { appendBundlesToLifecycle } from '../src/utils/append-lifecycle.js';
 
 const CONFIG = {
   totalBundles: 8,
@@ -148,7 +152,7 @@ async function main() {
         testPhase: 'normal',
       });
 
-      saveLifecycle();
+      // Removed mid-test save (append at end only)
 
       // Wait for confirmation
       await new Promise(r => setTimeout(r, 5000));
@@ -158,7 +162,7 @@ async function main() {
       lastBundle.stage = 'confirmed';
       lastBundle.confirmedAt = Date.now();
       lastBundle.status = 'confirmed';
-      saveLifecycle();
+      // Removed mid-test save (append at end only)
 
       console.log(`   ✅ Confirmed`);
       console.log();
@@ -182,7 +186,7 @@ async function main() {
         network: 'mainnet-beta',
         testPhase: 'normal',
       });
-      saveLifecycle();
+      // Removed mid-test save (append at end only)
       console.log();
     }
   }
@@ -277,7 +281,7 @@ async function main() {
         },
       });
 
-      saveLifecycle();
+      // Removed mid-test save (append at end only)
 
       // Wait and check status
       await new Promise(r => setTimeout(r, 10000));
@@ -289,7 +293,7 @@ async function main() {
       bundles[bundles.length - 1].status = 'failed';
       bundles[bundles.length - 1].aiAnalyzed = true;
       
-      saveLifecycle();
+      // Removed mid-test save (append at end only)
 
       console.log(`   ❌ Failed as expected`);
       
@@ -299,7 +303,7 @@ async function main() {
       
       bundles[bundles.length - 1].aiReasoning = aiAnalysis;
       bundles[bundles.length - 1].agent_reasoning = formatForDashboard(aiAnalysis);
-      saveLifecycle();
+      // Removed mid-test save (append at end only)
       
       console.log(`   ✅ AI Analysis Complete`);
       console.log(`      Action: ${aiAnalysis.action}`);
@@ -331,7 +335,7 @@ async function main() {
         testPhase: 'failure',
         aiReasoning: aiReasoning,
       });
-      saveLifecycle();
+      // Removed mid-test save (append at end only)
       console.log();
     }
   }
@@ -356,8 +360,17 @@ async function main() {
   console.log(`Total Tips: ${(totalTips / LAMPORTS_PER_SOL).toFixed(6)} SOL`);
   console.log();
 
+  // Append to lifecycle_log.json (doesn't overwrite other tests!)
+  console.log('💾 Appending to lifecycle_log.json...');
+  const log = appendBundlesToLifecycle(bundles, {
+    testType: 'medium-complexity',
+  });
+  console.log(`   Total bundles in log: ${log.metadata.totalBundles}`);
+  console.log(`   Total test runs: ${log.metadata.testRuns || 1}`);
+  console.log();
+
   console.log('📁 Evidence Files:');
-  console.log(`   - ${lifecycleFile}`);
+  console.log(`   - lifecycle_log.json (accumulated)`);
   console.log(`   - evidence/medium_complexity_${Date.now()}.json`);
   console.log();
 
