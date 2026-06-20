@@ -95,10 +95,12 @@ async function main() {
   console.log(`Balance: ${(balance / LAMPORTS_PER_SOL).toFixed(4)} SOL`);
   console.log();
 
-  if (balance < 0.03 * LAMPORTS_PER_SOL) {
-    console.error('❌ Need at least 0.03 SOL');
+  if (balance < 0.02 * LAMPORTS_PER_SOL) {
+    console.error('❌ Need at least 0.02 SOL');
     process.exit(1);
   }
+  console.log(`✅ Balance sufficient: ${(balance / LAMPORTS_PER_SOL).toFixed(4)} SOL`);
+  console.log();
 
   const TIP_ACCOUNT = new PublicKey('96gYZGLnJYVFmbjzopPSU6QiEV5fGqZNyN9nmNhvrZU5');
   const bundles: any[] = [];
