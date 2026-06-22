@@ -4,7 +4,7 @@ Live dashboard screenshots from Full-Capability Demonstration Test (2026-06-20).
 
 ## Overview
 
-![Dashboard Overview](dashboard-overview.png)
+https://github.com/Cloud99p/solana-tx-stack/blob/main/evidence/screenshots/Dashboard.jpeg
 
 **Key Metrics:**
 - **Total Bundles:** 12
@@ -14,7 +14,7 @@ Live dashboard screenshots from Full-Capability Demonstration Test (2026-06-20).
 
 ## AI Decisions Panel
 
-![AI Decisions](dashboard-ai-decisions.png)
+[![AI Decisions](dashboard-ai-decisions.png)](https://github.com/Cloud99p/solana-tx-stack/blob/main/evidence/screenshots/AI%20Decisions.jpeg)
 
 **AI Analysis Examples:**
 - **RETRY** - double_spend failure (75% confidence)
@@ -23,7 +23,7 @@ Live dashboard screenshots from Full-Capability Demonstration Test (2026-06-20).
 
 ## Performance Charts
 
-![Charts](dashboard-charts.png)
+[![Charts](dashboard-charts.png)](https://github.com/Cloud99p/solana-tx-stack/blob/main/evidence/screenshots/Charts.jpeg)
 
 - **Success Rate Over Time:** Shows transition from normal bundles to failure scenarios
 - **Tip Efficiency:** Demonstrates dynamic tip adjustment (3,000 - 50,000 lamports)
