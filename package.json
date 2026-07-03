@@ -8,6 +8,7 @@
     "dev": "tsx src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
+    "okx-agent": "node okx-agent-server.js",
     "clean": "rm -rf dist",
     "lint": "eslint src/**/*.ts",
     "test": "vitest",
