@@ -66,18 +66,20 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Route handling
-  if (req.url === '/health' && req.method === 'GET') {
+  // Route handling (parse URL without query strings)
+  const urlPath = req.url.split('?')[0]; // Remove query strings
+  
+  if (urlPath === '/health' && req.method === 'GET') {
     handleHealthCheck(res);
-  } else if (req.url === '/status' && req.method === 'GET') {
+  } else if (urlPath === '/status' && req.method === 'GET') {
     handleStatus(res);
-  } else if (req.url === '/task' && req.method === 'POST') {
+  } else if (urlPath === '/task' && req.method === 'POST') {
     handleTaskRequest(req, res);
-  } else if (req.url === '/tasks' && req.method === 'GET') {
+  } else if (urlPath === '/tasks' && req.method === 'GET') {
     handleGetTasks(res);
   } else {
-    res.writeHead(404, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Not Found', endpoints: ['/health', '/status', '/task', '/tasks'] }));
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.end('Not Found');
   }
 });
 
