@@ -32,30 +32,38 @@ const server = http.createServer((req, res) => {
     const url = req.url.split('?')[0]; // Remove query strings
     console.log(`[${new Date().toISOString()}] ${req.method} ${url}`);
 
-    // OKX Health Check Endpoint
-    if (url === '/health' && req.method === 'GET') {
+    // OKX Health Check Endpoint (GET and HEAD)
+    if (url === '/health' && (req.method === 'GET' || req.method === 'HEAD')) {
         res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
-        res.end(JSON.stringify({
-            status: 'healthy',
-            timestamp: new Date().toISOString(),
-            agentId: '3512',
-            version: '1.0.0'
-        }));
+        if (req.method === 'GET') {
+            res.end(JSON.stringify({
+                status: 'healthy',
+                timestamp: new Date().toISOString(),
+                agentId: '3512',
+                version: '1.0.0'
+            }));
+        } else {
+            res.end();
+        }
         console.log('[✓] Health check responded');
         return;
     }
 
-    // OKX Status Endpoint
-    if (url === '/status' && req.method === 'GET') {
+    // OKX Status Endpoint (GET and HEAD)
+    if (url === '/status' && (req.method === 'GET' || req.method === 'HEAD')) {
         res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
-        res.end(JSON.stringify({
-            agentId: '3512',
-            name: 'Solana MEV Agent',
-            status: 'online',
-            version: '1.0.0',
-            capabilities: ['MEV bundle submission', 'Jito Block Engine integration'],
-            stats: { totalBundles: 65, successRate: '85%' }
-        }));
+        if (req.method === 'GET') {
+            res.end(JSON.stringify({
+                agentId: '3512',
+                name: 'Solana MEV Agent',
+                status: 'online',
+                version: '1.0.0',
+                capabilities: ['MEV bundle submission', 'Jito Block Engine integration'],
+                stats: { totalBundles: 65, successRate: '85%' }
+            }));
+        } else {
+            res.end();
+        }
         console.log('[✓] Status responded');
         return;
     }
