@@ -2,12 +2,12 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy only the health server
-COPY okx-health-server.js .
+# Copy the working server
+COPY okx-agent-server.js .
 
 # No dependencies needed - pure Node.js
-EXPOSE 3000
+EXPOSE 8080
 
-ENV PORT=3000
+ENV PORT=8080
 
-CMD ["node", "okx-health-server.js"]
+CMD ["node", "okx-agent-server.js"]

@@ -24,21 +24,25 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // HEALTH CHECK - OKX verifies this
-  if (url === '/health' && req.method === 'GET') {
+  // HEALTH CHECK - OKX verifies this (GET and HEAD)
+  if (url === '/health' && (req.method === 'GET' || req.method === 'HEAD')) {
     res.writeHead(200);
-    res.end(JSON.stringify({
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      agentId: '3325',
-      version: '1.0.0'
-    }));
+    if (req.method === 'GET') {
+      res.end(JSON.stringify({
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        agentId: '3512',
+        version: '1.0.0'
+      }));
+    } else {
+      res.end();
+    }
     console.log('[✓] Health check responded');
     return;
   }
 
-  // STATUS - Agent info
-  if (url === '/status' && req.method === 'GET') {
+  // STATUS - Agent info (GET and HEAD)
+  if (url === '/status' && (req.method === 'GET' || req.method === 'HEAD')) {
     res.writeHead(200);
     res.end(JSON.stringify({
       agentId: '3325',
