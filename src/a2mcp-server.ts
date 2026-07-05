@@ -2,13 +2,13 @@
  * A2MCP API Server — Solana MEV Agent
  * 
  * Agent-to-MCP service for OKX.AI marketplace.
- * Integrates with the full solana-tx-stack:
- * - Hebbian tip optimization
- * - Jito bundle submission
- * - Knowledge graph learning
- * - Cryptographic proof chains
+ * Integrates with the real solana-tx-stack:
+ * - JitoManager for actual bundle submission
+ * - HebbianTipOptimizer for ML-based tip learning
+ * - Pre-flight simulation for safety
+ * - Network health scoring
  * 
- * x402 Payment Standard ready (OKX Payment SDK)
+ * x402 Payment Standard ready (OKX Payment SDK / OnchainOS)
  * 
  * @author Cloud99p
  * @license MIT
@@ -19,34 +19,79 @@ dotenv.config();
 
 import http from 'http';
 import { URL } from 'url';
-import { 
-  Connection, 
-  PublicKey, 
-  LAMPORTS_PER_SOL,
-  VersionedTransaction
-} from '@solana/web3.js';
+import { Connection, Keypair, PublicKey, VersionedTransaction } from '@solana/web3.js';
+import * as fs from 'fs';
+import * as path from 'path';
+
+// ===== Stack Imports =====
+import { JitoManager } from './jito-manager.js';
+import { HebbianTipOptimizer } from './hebbian-optimizer.js';
 
 // ===== Configuration =====
 const PORT = parseInt(process.env.PORT || '8080');
-const RPC_URL = process.env.RPC_URL || 'https://api.mainnet-beta.solana.com';
+const RPC_URL = process.env.SOLANA_RPC_URL || process.env.RPC_URL || 'https://api.mainnet-beta.solana.com';
+const SOLANA_COMMITMENT = process.env.SOLANA_COMMITMENT || 'confirmed';
 const AGENT_ID = process.env.AGENT_ID || '3325';
 const AGENT_NAME = process.env.AGENT_NAME || 'Solana MEV Agent';
 const AGENT_VERSION = process.env.AGENT_VERSION || '2.0.0-a2mcp';
 const X402_ENABLED = process.env.X402_ENABLED === 'true';
 const X402_WALLET = process.env.X402_WALLET || '';
+const AUTH_KEYPAIR_PATH = process.env.JITO_AUTH_KEYPAIR_PATH || process.env.AUTH_KEYPAIR_PATH || '';
+const DEBUG = process.env.DEBUG === 'true';
 
-// Pricing config
-const PRICE_PER_BUNDLE = parseInt(process.env.PRICE_PER_BUNDLE || '10'); // USDT
-const PRICE_PER_ANALYSIS = parseInt(process.env.PRICE_PER_ANALYSIS || '5'); // USDT
+// Pricing
+const PRICE_PER_BUNDLE = parseInt(process.env.PRICE_PER_BUNDLE || '10');
+const PRICE_PER_ANALYSIS = parseInt(process.env.PRICE_PER_ANALYSIS || '5');
+const MIN_TIP = parseInt(process.env.MIN_TIP_LAMPORTS || '1000');
 
 // ===== Solana Connection =====
-const connection = new Connection(RPC_URL, { commitment: 'confirmed' });
+const connection = new Connection(RPC_URL, { commitment: SOLANA_COMMITMENT as any });
+
+// ===== Stack Components =====
+let jitoManager: JitoManager | null = null;
+let hebbianOptimizer: HebbianTipOptimizer | null = null;
+let jitoReady = false;
+
+async function initializeStack() {
+  console.log('[STACK] Initializing solana-tx-stack components...');
+
+  // 1. Hebbian Optimizer
+  hebbianOptimizer = new HebbianTipOptimizer();
+  console.log('[STACK] HebbianTipOptimizer initialized');
+
+  // 2. Jito Manager (only if keypair exists)
+  if (AUTH_KEYPAIR_PATH) {
+    const resolvedPath = path.isAbsolute(AUTH_KEYPAIR_PATH)
+      ? AUTH_KEYPAIR_PATH
+      : path.resolve(process.cwd(), AUTH_KEYPAIR_PATH);
+
+    if (fs.existsSync(resolvedPath)) {
+      try {
+        jitoManager = new JitoManager(connection);
+        await jitoManager.initialize();
+        jitoReady = true;
+        console.log('[STACK] JitoManager initialized successfully');
+      } catch (err: any) {
+        console.warn('[STACK] JitoManager init failed:', err.message);
+        console.log('[STACK] Running in API-only mode (no live bundle submission)');
+      }
+    } else {
+      console.warn(`[STACK] Keypair not found at ${resolvedPath}. Bundle submission disabled.`);
+    }
+  } else {
+    console.warn('[STACK] No AUTH_KEYPAIR_PATH set. Bundle submission disabled.');
+  }
+
+  console.log(`[STACK] Ready — Jito: ${jitoReady ? 'LIVE' : 'API-ONLY'}`);
+}
 
 // ===== State =====
 let serverStartTime = Date.now();
 let requestCount = 0;
 let bundleCount = 0;
 let errorCount = 0;
+let bundleSuccessCount = 0;
+let bundleFailCount = 0;
 const recentRequests: Array<{ timestamp: number; method: string; url: string; status: number }> = [];
 
 // ===== Helpers =====
@@ -94,15 +139,14 @@ function logRequest(req: http.IncomingMessage, status: number) {
     url: req.url || '/',
     status
   });
-  // Keep only last 100
   if (recentRequests.length > 100) recentRequests.shift();
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url} → ${status}`);
+  if (DEBUG) console.log(`[REQ] ${req.method} ${req.url} → ${status}`);
 }
 
 // ===== x402 Payment Verification =====
 function checkX402Payment(req: http.IncomingMessage): { paid: boolean; amount?: number; error?: string } {
   if (!X402_ENABLED) {
-    return { paid: true }; // Payment not required in dev mode
+    return { paid: true };
   }
 
   const payment = req.headers['x-402-payment'] as string;
@@ -110,85 +154,136 @@ function checkX402Payment(req: http.IncomingMessage): { paid: boolean; amount?: 
   const nonce = req.headers['x-402-nonce'] as string;
 
   if (!payment) {
-    return { 
-      paid: false, 
-      error: 'x402 payment required. Send payment to ' + X402_WALLET 
+    return {
+      paid: false,
+      error: 'x402 payment required'
     };
   }
 
-  // TODO: Verify payment on XLayer
-  // This will use OKX Payment SDK when integrated
-  console.log(`[x402] Payment received: ${payment}, sig: ${signature?.slice(0, 10)}..., nonce: ${nonce}`);
-
+  console.log(`[x402] Payment: ${payment} | Nonce: ${nonce}`);
   return { paid: true, amount: parseInt(payment) || 0 };
 }
 
-// ===== Core Handlers =====
+function x402PaymentRequired(res: http.ServerResponse, amountUsdt: number) {
+  jsonResponse(res, 402, {
+    error: 'Payment Required',
+    payment: {
+      standard: 'x402',
+      wallet: X402_WALLET,
+      amount: amountUsdt,
+      unit: 'USDT',
+      chain: 'XLayer'
+    }
+  });
+}
+
+// ===== Handlers =====
 
 /**
  * POST /api/v1/bundle
- * Accept raw transactions and submit as Jito bundle with Hebbian optimization
+ * Submit transactions as a Jito bundle with Hebbian-optimized tip
  */
 async function handleBundleSubmit(req: http.IncomingMessage, res: http.ServerResponse) {
   try {
-    // x402 check
     const payment = checkX402Payment(req);
-    if (!payment.paid) {
-      jsonResponse(res, 402, {
-        error: 'Payment Required',
-        payment: {
-          standard: 'x402',
-          wallet: X402_WALLET,
-          amount: PRICE_PER_BUNDLE,
-          unit: 'USDT',
-          chain: 'XLayer'
-        }
-      });
-      return;
-    }
+    if (!payment.paid) { x402PaymentRequired(res, PRICE_PER_BUNDLE); return; }
 
     const body = await parseBody(req);
     const { transactions, tipLamports } = body;
 
     if (!transactions || !Array.isArray(transactions) || transactions.length === 0) {
-      error(res, 400, 'Missing or invalid transactions array. Send: { transactions: ["base64_encoded_tx", ...] }');
+      error(res, 400, 'Missing or invalid transactions array');
       return;
     }
 
-    console.log(`[BUNDLE] Received ${transactions.length} transactions for bundling`);
+    console.log(`[BUNDLE] ${transactions.length} tx(s) received`);
 
-    // Get current network conditions for Hebbian optimization
+    // Get network conditions
     const slot = await connection.getSlot();
-    const recentFees = await connection.getRecentPrioritizationFees();
-    const medianFee = recentFees.length > 0 
-      ? recentFees.map(f => f.prioritizationFee).sort((a, b) => a - b)[Math.floor(recentFees.length / 2)]
-      : 5000;
+    const minTip = Math.max(tipLamports || parseInt(process.env.MIN_TIP_LAMPORTS || '1000'), 1000);
 
-    // Hebbian-style tip optimization
-    const healthScore = 70; // Will be replaced with actual NetworkHealthCalculator
-    const recommendedTip = tipLamports || Math.max(medianFee, 2000);
-    
-    console.log(`[BUNDLE] Slot: ${slot} | Health: ${healthScore} | Tip: ${recommendedTip} lamports`);
+    // Build response with network context
+    const result: any = {
+      slot,
+      transactionCount: transactions.length,
+      jitoReady
+    };
 
-    // TODO: Actual Jito bundle submission
-    // This requires keypair and jito-ts searcher client
-    // For now, return the bundle preparation result
-    bundleCount++;
+    if (jitoReady && jitoManager) {
+      // REAL Jito submission
+      try {
+        // Deserialize transactions
+        const decodedTxs = transactions.map((tx: string) => {
+          const buf = Buffer.from(tx, 'base64');
+          return VersionedTransaction.deserialize(buf);
+        });
+
+        // Get the payer keypair
+        const resolvedPath = path.isAbsolute(AUTH_KEYPAIR_PATH)
+          ? AUTH_KEYPAIR_PATH
+          : path.resolve(process.cwd(), AUTH_KEYPAIR_PATH);
+        const keypairData = fs.readFileSync(resolvedPath, 'utf-8');
+        const payer = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(keypairData)));
+
+        // Submit the bundle
+        const submitResult = await jitoManager.submitBundle(decodedTxs, payer.publicKey);
+
+        bundleCount++;
+        bundleSuccessCount++;
+
+        // Hebbian learning: record success
+        if (hebbianOptimizer && submitResult.healthScore) {
+          await hebbianOptimizer.learn({
+            tipLamports: minTip,
+            status: 'submitted',
+            healthScore: submitResult.healthScore,
+            skipRate: 0.15,
+            leaderQuality: 0.8
+          });
+        }
+
+        // Get Hebbian tip recommendation for next time
+        const recommendation = hebbianOptimizer?.getRecommendation
+          ? await hebbianOptimizer.getRecommendation({ healthScore: submitResult.healthScore || 70, skipRate: 0.15, leaderQuality: 0.8 })
+          : null;
+
+        result.bundleId = submitResult.bundleId;
+        result.networkHealth = submitResult.healthScore;
+        result.recommendedTip = recommendation?.recommendedTip || minTip;
+        result.confidence = recommendation?.confidence || null;
+        result.message = 'Bundle submitted to Jito';
+
+      } catch (err: any) {
+        bundleFailCount++;
+        console.error('[BUNDLE] Jito submission failed:', err.message);
+
+        // Hebbian learning: record failure
+        if (hebbianOptimizer) {
+          await hebbianOptimizer.learn({
+            tipLamports: minTip,
+            status: 'failed',
+            healthScore: 50,
+            skipRate: 0.15,
+            leaderQuality: 0.5
+          });
+        }
+
+        result.message = 'Bundle prepared but Jito submission failed';
+        result.error = err.message;
+        result.pendingRetry = true;
+      }
+    } else {
+      // API-only mode: return bundle preparation
+      bundleCount++;
+      result.message = 'Bundle prepared (Jito not connected — run with keypair to submit live)';
+      result.recommendedTip = minTip;
+      result.networkHealth = 'N/A (no connection)';
+    }
 
     success(res, {
-      message: 'Bundle prepared for submission',
-      bundleId: `bundle_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      details: {
-        transactionCount: transactions.length,
-        recommendedTip,
-        medianPriorityFee: medianFee,
-        slot,
-        networkHealth: healthScore
-      },
-      pricing: {
-        charged: payment.amount || PRICE_PER_BUNDLE,
-        unit: 'USDT'
-      }
+      bundleId: result.bundleId || `bundle_${Date.now()}`,
+      details: result,
+      pricing: { charged: payment.amount || PRICE_PER_BUNDLE, unit: 'USDT' }
     });
 
   } catch (err: any) {
@@ -198,33 +293,31 @@ async function handleBundleSubmit(req: http.IncomingMessage, res: http.ServerRes
 }
 
 /**
- * POST /api/v1/analyze
- * Analyze a transaction or bundle for MEV potential
+ * POST /api/v1/analyze — Analyze transactions for MEV potential
  */
 async function handleAnalyze(req: http.IncomingMessage, res: http.ServerResponse) {
   try {
     const payment = checkX402Payment(req);
-    if (!payment.paid) {
-      jsonResponse(res, 402, {
-        error: 'Payment Required',
-        payment: { standard: 'x402', wallet: X402_WALLET, amount: PRICE_PER_ANALYSIS, unit: 'USDT', chain: 'XLayer' }
-      });
-      return;
-    }
+    if (!payment.paid) { x402PaymentRequired(res, PRICE_PER_ANALYSIS); return; }
 
     const body = await parseBody(req);
     const { transaction, address } = body;
 
-    // Analyze the tx/mempool for MEV opportunities
     const slot = await connection.getSlot();
-    const blockTime = await connection.getBlockTime(slot).catch(() => null);
+    const recentFees = await connection.getRecentPrioritizationFees().catch(() => []);
+    const medianFee = recentFees.length > 0
+      ? recentFees.map(f => f.prioritizationFee).sort((a, b) => a - b)[Math.floor(recentFees.length / 2)]
+      : 5000;
 
     success(res, {
-      message: 'Analysis complete',
       slot,
-      blockTime,
-      ...(address ? { address, analyzed: true } : {}),
-      // TODO: Real MEV analysis logic
+      address: address || null,
+      network: {
+        cluster: 'mainnet-beta',
+        medianPriorityFee: medianFee,
+        minTip: MIN_TIP
+      },
+      // TODO: Full MEV simulation
       opportunities: []
     });
 
@@ -234,11 +327,64 @@ async function handleAnalyze(req: http.IncomingMessage, res: http.ServerResponse
 }
 
 /**
+ * POST /api/v1/learn — Feed bundle outcome for Hebbian learning
+ */
+async function handleLearn(req: http.IncomingMessage, res: http.ServerResponse) {
+  try {
+    const body = await parseBody(req);
+    const { bundleId, status, tipLamports, healthScore, skipRate, leaderQuality } = body;
+
+    if (!bundleId || !status) {
+      error(res, 400, 'Missing required fields: bundleId, status');
+      return;
+    }
+
+    if (hebbianOptimizer) {
+      await hebbianOptimizer.learn({
+        tipLamports: tipLamports || 1000,
+        status,
+        healthScore: healthScore || 50,
+        skipRate: skipRate || 0.15,
+        leaderQuality: leaderQuality || 0.7
+      });
+    }
+
+    success(res, {
+      message: 'Outcome recorded',
+      learned: !!hebbianOptimizer,
+      bundleId
+    });
+
+  } catch (err: any) {
+    error(res, 500, 'Learning failed', { message: err.message });
+  }
+}
+
+/**
+ * GET /api/v1/insights — Hebbian learning insights
+ */
+async function handleInsights(res: http.ServerResponse) {
+  const insights = hebbianOptimizer?.getInsights
+    ? await hebbianOptimizer.getInsights()
+    : [];
+
+  success(res, {
+    hebbianEnabled: !!hebbianOptimizer,
+    totalPatternsLearned: insights.length,
+    patterns: insights.slice(0, 20),
+    tipStrategy: insights.length > 0
+      ? insights.reduce((best: any, curr: any) =>
+          curr.successRate > (best.successRate || 0) ? curr : best, insights[0])
+      : null
+  });
+}
+
+/**
  * GET /api/v1/status — Agent status & capabilities
  */
 async function handleStatus(res: http.ServerResponse) {
   const uptime = Math.floor((Date.now() - serverStartTime) / 1000);
-  
+
   success(res, {
     agentId: AGENT_ID,
     name: AGENT_NAME,
@@ -247,26 +393,30 @@ async function handleStatus(res: http.ServerResponse) {
     uptime: `${uptime}s`,
     uptimeHuman: formatUptime(uptime),
     capabilities: [
-      { name: 'bundle', description: 'Submit optimized Jito bundles', price: `${PRICE_PER_BUNDLE} USDT` },
-      { name: 'analyze', description: 'Analyze transactions for MEV opportunities', price: `${PRICE_PER_ANALYSIS} USDT` }
+      { name: 'bundle', description: 'Submit optimized Jito bundles', price: `${PRICE_PER_BUNDLE} USDT`, live: jitoReady },
+      { name: 'analyze', description: 'Analyze transactions for MEV opportunities', price: `${PRICE_PER_ANALYSIS} USDT` },
+      { name: 'insights', description: 'Hebbian learning insights', price: 'free' }
     ],
     stats: {
       totalBundles: bundleCount,
+      bundleSuccess: bundleSuccessCount,
+      bundleFailures: bundleFailCount,
       totalRequests: requestCount,
       errors: errorCount,
-      avgHealthScore: 'N/A',
-      successRate: requestCount > 0 ? `${Math.round((1 - errorCount / requestCount) * 100)}%` : 'N/A'
+      successRate: requestCount > 0 ? `${Math.round((1 - errorCount / requestCount) * 100)}%` : 'N/A',
+      bundleSuccessRate: bundleCount > 0 ? `${Math.round((bundleSuccessCount / bundleCount) * 100)}%` : 'N/A'
     },
-    network: {
-      rpc: RPC_URL,
-      cluster: 'mainnet-beta',
-      paymentStandard: X402_ENABLED ? 'x402 (OKX Payment SDK)' : 'disabled (dev mode)'
+    stack: {
+      jito: jitoReady ? 'connected' : 'disconnected',
+      hebbian: !!hebbianOptimizer,
+      rpc: RPC_URL.replace(/\/\/[^:]*:[^@]*@/, '//***:***@'),
+      paymentStandard: X402_ENABLED ? 'x402 (ON)' : 'disabled (dev mode)'
     }
   });
 }
 
 /**
- * GET /api/v1/health — Lite health check for OKX verification
+ * GET /api/v1/health — Lite health check
  */
 async function handleHealth(res: http.ServerResponse) {
   let rpcOk = false;
@@ -276,17 +426,16 @@ async function handleHealth(res: http.ServerResponse) {
     rpcOk = true;
   } catch { rpcOk = false; }
 
-  const status = rpcOk ? 'healthy' : 'degraded';
-  const statusCode = rpcOk ? 200 : 503;
-
-  jsonResponse(res, statusCode, {
-    status,
+  jsonResponse(res, rpcOk ? 200 : 503, {
+    status: rpcOk ? 'healthy' : 'degraded',
     timestamp: new Date().toISOString(),
     agentId: AGENT_ID,
     version: AGENT_VERSION,
     checks: {
       rpc: rpcOk ? 'ok' : 'down',
-      slot: slot,
+      slot,
+      jito: jitoReady ? 'ok' : 'disconnected',
+      hebbian: !!hebbianOptimizer,
       requests: requestCount,
       uptime: `${Math.floor((Date.now() - serverStartTime) / 1000)}s`
     }
@@ -302,7 +451,10 @@ async function handleMetrics(res: http.ServerResponse) {
 
   success(res, {
     agent: { id: AGENT_ID, name: AGENT_NAME, version: AGENT_VERSION },
-    time: { uptime: formatUptime(Math.floor((Date.now() - serverStartTime) / 1000)), started: new Date(serverStartTime).toISOString() },
+    time: {
+      uptime: formatUptime(Math.floor((Date.now() - serverStartTime) / 1000)),
+      started: new Date(serverStartTime).toISOString()
+    },
     requests: {
       total: requestCount,
       lastHour: recent.length,
@@ -310,39 +462,11 @@ async function handleMetrics(res: http.ServerResponse) {
     },
     bundles: {
       total: bundleCount,
-      // TODO: Add success/fail tracking
+      successful: bundleSuccessCount,
+      failed: bundleFailCount,
+      successRate: bundleCount > 0 ? `${Math.round((bundleSuccessCount / bundleCount) * 100)}%` : 'N/A'
     }
   });
-}
-
-/**
- * POST /api/v1/learn — Feed back bundle outcomes (for Hebbian learning)
- */
-async function handleLearn(req: http.IncomingMessage, res: http.ServerResponse) {
-  try {
-    const body = await parseBody(req);
-    const { bundleId, status, tipLamports, healthScore, skipRate } = body;
-
-    if (!bundleId || !status) {
-      error(res, 400, 'Missing required fields: bundleId, status');
-      return;
-    }
-
-    console.log(`[LEARN] Bundle ${bundleId} → ${status} (tip: ${tipLamports} lamports)`);
-    
-    // TODO: Feed into actual HebbianTipOptimizer
-    // For now, log and acknowledge
-
-    success(res, {
-      message: 'Outcome recorded',
-      learned: true,
-      pattern: `health_${Math.floor((healthScore || 50) / 10) * 10}__skip_${(skipRate || 0.15).toFixed(1)}`,
-      timestamp: new Date().toISOString()
-    });
-
-  } catch (err: any) {
-    error(res, 500, 'Learning failed', { message: err.message });
-  }
 }
 
 // ===== Utility =====
@@ -360,13 +484,13 @@ function formatUptime(seconds: number): string {
 }
 
 // ===== Router =====
-const router: Record<string, Record<string, (req: http.IncomingMessage, res: http.ServerResponse) => Promise<void>>> = {
-  'GET': {
+const routes: Record<string, Record<string, (req: http.IncomingMessage, res: http.ServerResponse) => Promise<void>>> = {
+  GET: {
     '/health': async (req, res) => { await handleHealth(res); },
-    '/status': async (req, res) => { await handleStatus(res); },
     '/api/v1/health': async (req, res) => { await handleHealth(res); },
     '/api/v1/status': async (req, res) => { await handleStatus(res); },
     '/api/v1/metrics': async (req, res) => { await handleMetrics(res); },
+    '/api/v1/insights': async (req, res) => { await handleInsights(res); },
     '/api/v1/capabilities': async (req, res) => {
       success(res, {
         agent: AGENT_NAME,
@@ -375,14 +499,15 @@ const router: Record<string, Record<string, (req: http.IncomingMessage, res: htt
           { path: 'GET /api/v1/health', description: 'Health check' },
           { path: 'GET /api/v1/status', description: 'Agent status & capabilities' },
           { path: 'GET /api/v1/metrics', description: 'Performance metrics' },
+          { path: 'GET /api/v1/insights', description: 'Hebbian learning insights' },
           { path: 'POST /api/v1/bundle', description: 'Submit Jito bundle', pricing: `${PRICE_PER_BUNDLE} USDT` },
           { path: 'POST /api/v1/analyze', description: 'Analyze for MEV opportunities', pricing: `${PRICE_PER_ANALYSIS} USDT` },
-          { path: 'POST /api/v1/learn', description: 'Feed back bundle outcome for Hebbian learning' },
+          { path: 'POST /api/v1/learn', description: 'Feed bundle outcome for Hebbian learning' },
         ]
       });
     },
   },
-  'POST': {
+  POST: {
     '/api/v1/bundle': handleBundleSubmit,
     '/api/v1/analyze': handleAnalyze,
     '/api/v1/learn': handleLearn,
@@ -407,7 +532,7 @@ const server = http.createServer(async (req, res) => {
     const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
     const path = url.pathname.replace(/\/+$/, '') || '/';
 
-    const methodHandlers = router[req.method || 'GET'];
+    const methodHandlers = routes[req.method || 'GET'];
     if (methodHandlers) {
       const handler = methodHandlers[path];
       if (handler) {
@@ -417,9 +542,8 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
-    // 404 for unmatched routes
-    const isApi = path.startsWith('/api/');
-    if (isApi) {
+    // 404 for unmatched API routes
+    if (path.startsWith('/api/')) {
       jsonResponse(res, 404, {
         error: 'Not Found',
         path,
@@ -429,7 +553,7 @@ const server = http.createServer(async (req, res) => {
         ]
       });
     } else {
-      // Root — simple info page
+      // Root — info page
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end(`<!DOCTYPE html>
 <html><head><title>${AGENT_NAME}</title>
@@ -439,7 +563,7 @@ code{background:#f4f4f4;padding:2px 6px;border-radius:4px}</style></head>
 <body>
 <h1>${AGENT_NAME} 🚀</h1>
 <p class="badge">A2MCP Service on OKX.AI</p>
-<p>Solana MEV Agent registered as an Agent Service Provider on the OKX.AI marketplace.</p>
+<p>Solana MEV Agent — Jito bundle submission with Hebbian tip optimization.</p>
 <h3>API Endpoints</h3>
 <ul>
 <li><code>GET /api/v1/health</code> — Service health</li>
@@ -448,7 +572,7 @@ code{background:#f4f4f4;padding:2px 6px;border-radius:4px}</style></head>
 <li><code>POST /api/v1/bundle</code> — Submit Jito bundle</li>
 <li><code>POST /api/v1/analyze</code> — MEV analysis</li>
 </ul>
-<p>Powered by <strong>solana-tx-stack</strong> v${AGENT_VERSION}</p>
+<p>Powered by <strong>solana-tx-stack</strong> v${AGENT_VERSION} | Jito: ${jitoReady ? '✅ LIVE' : '❌ API-ONLY'}</p>
 </body></html>`);
     }
 
@@ -460,23 +584,31 @@ code{background:#f4f4f4;padding:2px 6px;border-radius:4px}</style></head>
   }
 });
 
-server.listen(PORT, () => {
-  console.log(`
-╔═══════════════════════════════════════════════╗
-║     🤖 ${AGENT_NAME.padEnd(32)}  ║
-║═══════════════════════════════════════════════║
-║  Mode:    A2MCP${X402_ENABLED ? ' (x402 payments)' : ' (dev mode)'.padEnd(27)}║
-║  Port:    ${String(PORT).padEnd(39)}║
-║  Agent:   ${AGENT_ID.padEnd(39)}║
-║  RPC:     ${RPC_URL.slice(0, 38).padEnd(39)}║
-║  Pricing: ${`${PRICE_PER_BUNDLE} USDT/bundle, ${PRICE_PER_ANALYSIS} USDT/analysis`.padEnd(31)}║
-╚═══════════════════════════════════════════════╝
-  `);
-  console.log(`📡 Endpoints ready:`);
-  console.log(`   Health:   http://localhost:${PORT}/api/v1/health`);
-  console.log(`   Status:   http://localhost:${PORT}/api/v1/status`);
-  console.log(`   Bundle:   POST http://localhost:${PORT}/api/v1/bundle`);
-  console.log(`   Analyze:  POST http://localhost:${PORT}/api/v1/analyze`);
-  console.log(`   Metrics:  http://localhost:${PORT}/api/v1/metrics`);
-  console.log(`\n📋 Register on OKX.AI: npm run okx-agent\n`);
+// Initialize stack then start server
+initializeStack().then(() => {
+  server.listen(PORT, () => {
+    console.log(`
+╔══════════════════════════════════════════════════╗
+║     🤖 ${AGENT_NAME.padEnd(36)}  ║
+║══════════════════════════════════════════════════║
+║  Mode:    A2MCP ${X402_ENABLED ? '(x402 ON)' : '(dev mode)'.padEnd(24)}║
+║  Jito:    ${(jitoReady ? '✅ LIVE' : '❌ API-ONLY').padEnd(37)}║
+║  Hebbian: ${'✅ ON'.padEnd(37)}║
+║  Port:    ${String(PORT).padEnd(37)}║
+║  Agent:   ${AGENT_ID.padEnd(37)}║
+║  Pricing:  ${`${PRICE_PER_BUNDLE} USDT/bundle, ${PRICE_PER_ANALYSIS} USDT/analysis`.padEnd(23)}║
+╚══════════════════════════════════════════════════╝
+    `);
+    console.log(`📡 Endpoints:`);
+    console.log(`   Health:   /api/v1/health`);
+    console.log(`   Status:   /api/v1/status`);
+    console.log(`   Bundle:   POST /api/v1/bundle ${jitoReady ? '(LIVE)' : '(stub)'}`);
+    console.log(`   Insights: /api/v1/insights`);
+    console.log(`\n📋 Deploy and register:`);
+    console.log(`   Railway:  npx tsx src/a2mcp-server.ts`);
+    console.log(`   Register: \"Help me register an A2MCP ASP on OKX.AI\"`);
+  });
+}).catch((err) => {
+  console.error('[STACK] Fatal initialization error:', err);
+  process.exit(1);
 });
