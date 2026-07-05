@@ -1,9 +1,5 @@
 services:
-<<<<<<< Updated upstream
-  # OKX.AI ASP Agent Server
-=======
   # A2MCP API Server — OKX.AI Agent Service Provider
->>>>>>> Stashed changes
   - type: web
     name: solana-mev-agent-okx
     env: node
@@ -11,21 +7,13 @@ services:
     plan: free
     branch: main
     rootDir: .
-<<<<<<< Updated upstream
-    buildCommand: echo "No build required"
-    startCommand: node okx-agent-server.js
-=======
     buildCommand: npm install
     startCommand: npx tsx src/a2mcp-server.ts
->>>>>>> Stashed changes
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 8080
-<<<<<<< Updated upstream
-    healthCheckPath: /health
-=======
       - key: RPC_URL
         value: https://api.mainnet-beta.solana.com
       - key: AGENT_ID
@@ -43,5 +31,4 @@ services:
       - key: X402_WALLET
         sync: false
     healthCheckPath: /api/v1/health
->>>>>>> Stashed changes
     autoDeploy: true

@@ -9,18 +9,15 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "okx-agent": "node okx-agent-server.js",
-<<<<<<< Updated upstream
-=======
     "a2mcp": "tsx src/a2mcp-server.ts",
     "a2mcp:dev": "X402_ENABLED=false tsx src/a2mcp-server.ts",
->>>>>>> Stashed changes
     "clean": "rm -rf dist",
     "lint": "eslint src/**/*.ts",
     "test": "vitest",
     "dashboard": "node scripts/dashboard-server.js",
     "dashboard:open": "node scripts/dashboard-server.js",
     "sync": "node scripts/sync-lifecycle.js",
-    "dashboard:full": "npm run dashboard & npm run sync"
+    "dashboard:full": "npm run dashboard && npm run sync"
   },
   "keywords": [
     "solana",
