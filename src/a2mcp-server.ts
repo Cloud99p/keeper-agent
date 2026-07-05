@@ -37,6 +37,26 @@ const AGENT_VERSION = process.env.AGENT_VERSION || '2.0.0-a2mcp';
 const X402_ENABLED = process.env.X402_ENABLED === 'true';
 const X402_WALLET = process.env.X402_WALLET || '';
 const AUTH_KEYPAIR_PATH = process.env.JITO_AUTH_KEYPAIR_PATH || process.env.AUTH_KEYPAIR_PATH || '';
+
+// Railway compat: decode base64 keypair env var to disk if file doesn't exist
+function ensureKeypairFile(): void {
+  const b64 = process.env.JITO_AUTH_KEYPAIR_B64 || '';
+  if (b64 && AUTH_KEYPAIR_PATH) {
+    const resolvedPath = path.isAbsolute(AUTH_KEYPAIR_PATH)
+      ? AUTH_KEYPAIR_PATH
+      : path.resolve(process.cwd(), AUTH_KEYPAIR_PATH);
+    const dir = path.dirname(resolvedPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    if (!fs.existsSync(resolvedPath)) {
+      const decoded = Buffer.from(b64, 'base64').toString('utf-8');
+      fs.writeFileSync(resolvedPath, decoded, 'utf-8');
+      console.log(`[STACK] Decoded keypair from JITO_AUTH_KEYPAIR_B64 -> ${resolvedPath}`);
+    }
+  }
+}
+ensureKeypairFile();
 const DEBUG = process.env.DEBUG === 'true';
 
 // Pricing
