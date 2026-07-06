@@ -614,12 +614,12 @@ const server = http.createServer(async (req, res) => {
       });
     } else {
       // Root — info page
-      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
       res.end(`<!DOCTYPE html>
-<html><head><title>${AGENT_NAME}</title>
-<style>body{font-family:sans-serif;max-width:600px;margin:40px auto;padding:20px;line-height:1.6}
-h1{color:#9945FF}.badge{background:#9945FF;color:white;padding:4px 12px;border-radius:12px;font-size:14px}
-code{background:#f4f4f4;padding:2px 6px;border-radius:4px}</style></head>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${AGENT_NAME}</title>
+<style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:600px;margin:40px auto;padding:20px;line-height:1.6}
+h1{color:#9945FF}.badge{background:#9945FF;color:white;padding:4px 12px;border-radius:12px;font-size:14px;display:inline-block}
+code{background:#f4f4f4;padding:2px 6px;border-radius:4px;font-family:'Courier New',monospace}ul{line-height:2}</style></head>
 <body>
 <h1>${AGENT_NAME} 🚀</h1>
 <p class="badge">A2MCP Service on OKX.AI</p>
