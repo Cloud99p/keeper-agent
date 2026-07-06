@@ -1,5 +1,8 @@
 FROM node:20-alpine
 
+# Install onchainos CLI
+RUN npm install -g onchainos
+
 WORKDIR /app
 
 # Copy package files
@@ -13,6 +16,11 @@ RUN npm ci --only=production || npm install
 COPY src/ ./src/
 COPY okx-agent-server.js ./
 
+# Copy heartbeat scripts
+COPY entrypoint.sh /app/entrypoint.sh
+COPY heartbeat.sh /app/heartbeat.sh
+RUN chmod +x /app/entrypoint.sh /app/heartbeat.sh
+
 # Build TypeScript
 RUN npx tsc --noEmit || echo "Build warning: continuing with tsx runtime"
 
@@ -23,5 +31,5 @@ ENV X402_ENABLED=false
 
 EXPOSE 8080
 
-# Run the A2MCP server via tsx (runtime compilation)
-CMD ["npx", "tsx", "src/a2mcp-server.ts"]
+# Entrypoint handles heartbeat + A2MCP
+ENTRYPOINT ["/app/entrypoint.sh"]
