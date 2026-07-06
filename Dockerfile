@@ -1,7 +1,12 @@
 FROM node:20-alpine
 
-# Install onchainos CLI
-RUN npm install -g onchainos
+# Install onchainos CLI from GitHub release (musl build for Alpine Linux)
+ARG ONCHAINOS_VERSION=v4.2.0
+RUN apk add --no-cache curl ca-certificates && \
+    curl -sSL -o /usr/local/bin/onchainos \
+      "https://github.com/okx/onchainos-skills/releases/download/${ONCHAINOS_VERSION}/onchainos-x86_64-unknown-linux-musl" && \
+    chmod +x /usr/local/bin/onchainos && \
+    onchainos --version
 
 WORKDIR /app
 
