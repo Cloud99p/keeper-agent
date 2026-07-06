@@ -26,6 +26,7 @@ import * as path from 'path';
 // ===== Stack Imports =====
 import { JitoManager } from './jito-manager.js';
 import { HebbianTipOptimizer } from './hebbian-optimizer.js';
+import { buildBrief, BriefData } from './morning-brief.js';
 
 // ===== Configuration =====
 const PORT = parseInt(process.env.PORT || '8080');
@@ -489,6 +490,43 @@ async function handleMetrics(res: http.ServerResponse) {
   });
 }
 
+/**
+ * GET /api/v1/brief — Morning market brief
+ */
+let briefCache: { data: BriefData; timestamp: number } | null = null;
+const BRIEF_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+async function handleBrief(res: http.ServerResponse) {
+  try {
+    // Return cached brief if fresh
+    if (briefCache && (Date.now() - briefCache.timestamp) < BRIEF_CACHE_TTL) {
+      jsonResponse(res, 200, {
+        success: true,
+        cached: true,
+        age: Math.floor((Date.now() - briefCache.timestamp) / 1000),
+        ...briefCache.data
+      });
+      return;
+    }
+
+    const brief = await buildBrief();
+    briefCache = { data: brief, timestamp: Date.now() };
+
+    jsonResponse(res, 200, {
+      success: true,
+      cached: false,
+      ...brief
+    });
+  } catch (err: any) {
+    console.error('[BRIEF] Build failed:', err);
+    jsonResponse(res, 500, {
+      success: false,
+      error: 'Failed to build market brief',
+      message: err.message
+    });
+  }
+}
+
 // ===== Utility =====
 function formatUptime(seconds: number): string {
   const d = Math.floor(seconds / 86400);
@@ -511,6 +549,7 @@ const routes: Record<string, Record<string, (req: http.IncomingMessage, res: htt
     '/api/v1/status': async (req, res) => { await handleStatus(res); },
     '/api/v1/metrics': async (req, res) => { await handleMetrics(res); },
     '/api/v1/insights': async (req, res) => { await handleInsights(res); },
+    '/api/v1/brief': async (req, res) => { await handleBrief(res); },
     '/api/v1/capabilities': async (req, res) => {
       success(res, {
         agent: AGENT_NAME,
@@ -520,6 +559,7 @@ const routes: Record<string, Record<string, (req: http.IncomingMessage, res: htt
           { path: 'GET /api/v1/status', description: 'Agent status & capabilities' },
           { path: 'GET /api/v1/metrics', description: 'Performance metrics' },
           { path: 'GET /api/v1/insights', description: 'Hebbian learning insights' },
+          { path: 'GET /api/v1/brief', description: 'Morning market brief' },
           { path: 'POST /api/v1/bundle', description: 'Submit Jito bundle', pricing: `${PRICE_PER_BUNDLE} USDT` },
           { path: 'POST /api/v1/analyze', description: 'Analyze for MEV opportunities', pricing: `${PRICE_PER_ANALYSIS} USDT` },
           { path: 'POST /api/v1/learn', description: 'Feed bundle outcome for Hebbian learning' },
@@ -568,7 +608,7 @@ const server = http.createServer(async (req, res) => {
         error: 'Not Found',
         path,
         availableEndpoints: [
-          'GET /api/v1/health', 'GET /api/v1/status', 'GET /api/v1/metrics',
+          'GET /api/v1/health', 'GET /api/v1/status', 'GET /api/v1/metrics', 'GET /api/v1/brief',
           'POST /api/v1/bundle', 'POST /api/v1/analyze', 'POST /api/v1/learn'
         ]
       });
@@ -621,6 +661,7 @@ initializeStack().then(() => {
     `);
     console.log(`📡 Endpoints:`);
     console.log(`   Health:   /api/v1/health`);
+    console.log(`   Brief:    /api/v1/brief`);
     console.log(`   Status:   /api/v1/status`);
     console.log(`   Bundle:   POST /api/v1/bundle ${jitoReady ? '(LIVE)' : '(stub)'}`);
     console.log(`   Insights: /api/v1/insights`);
