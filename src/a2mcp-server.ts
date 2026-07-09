@@ -268,8 +268,8 @@ async function handleBundleSubmit(req: http.IncomingMessage, res: http.ServerRes
         }
 
         // Get Hebbian tip recommendation for next time
-        const recommendation = hebbianOptimizer?.getRecommendation
-          ? await hebbianOptimizer.getRecommendation({ healthScore: submitResult.healthScore || 70, skipRate: 0.15, leaderQuality: 0.8 })
+        const recommendation = hebbianOptimizer?.recommendTip
+          ? await hebbianOptimizer.recommendTip({ healthScore: submitResult.healthScore || 70, skipRate: 0.15, leaderQuality: 0.8 })
           : null;
 
         result.bundleId = submitResult.bundleId;

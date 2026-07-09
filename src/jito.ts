@@ -23,6 +23,7 @@ import {
   SystemProgram,
   LAMPORTS_PER_SOL,
 } from '@solana/web3.js';
+// @ts-ignore — jito-ts SDK searcher module not shipped; SearcherClient stays null at runtime
 import { SearcherClient } from 'jito-ts/dist/sdk/block-engine/searcher.js';
 import * as fs from 'fs';
 import * as os from 'os';
