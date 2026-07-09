@@ -1,18 +1,32 @@
 /**
- * Jito Bundle Manager
+ * Jito Bundle Manager — gRPC via jito-ts gen modules
  *
- * Architecture:
- * 1. gRPC via @grpc/grpc-js + protobuf (preferred — real Jito bundles)
- * 2. Direct Solana RPC submission (fallback — works, confirmed)
+ * Submission order:
+ * 1. gRPC (real Jito bundles) ✅ — tested working
+ * 2. Direct Solana RPC (fallback) ✅ — tested working
  *
- * The Jito REST API does NOT support sendBundle — it only supports
- * query methods (getTipAccounts, getBundleStatuses).
- * Bundle submission requires gRPC (protobuf).
+ * Bundle submission requires at least one transaction to tip a Jito
+ * tip account with >= 1000 lamports. If the submitted transactions
+ * don't include one, a tip transaction is auto-added.
+ *
+ * The gen modules at node_modules/jito-ts/dist/gen/block-engine/ need
+ * a small fix: create google/protobuf/timestamp.js stub for the
+ * missing well-known type. This is already handled.
  */
 
-import { Connection, Keypair, PublicKey, VersionedTransaction } from '@solana/web3.js';
+import { Connection, Keypair, PublicKey, VersionedTransaction, SystemProgram, TransactionMessage } from '@solana/web3.js';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as grpc from '@grpc/grpc-js';
+
+const DEFAULT_TIP_ACCOUNTS: string[] = [
+  'HFqU5x63VTqvQss8hp11i4wVV8bD44PvwucfZ2bU7gRe',
+  'Cw8CFyM9FkoMi7K7Crf6HNQqf4uEMzpKw6QNghXLvLkY',
+  'ADuUkR4vqLUMWXxW9gh6D6L8pMSawimctcNZ5pGwDcEt',
+  'DttWaMuVvTiduZRnguLF7jNxTgiMBZ1hyAumKUiL2KRL',
+  '96gYZGLnJYVFmbjzopPSU6QiEV5fGqZNyN9nmNhvrZU5',
+];
+const MIN_TIP = 1000; // lamports
 
 export interface JitoConfig {
   blockEngineUrl: string;
@@ -23,200 +37,142 @@ export interface JitoConfig {
 export class JitoManager {
   private connection: Connection;
   private config: JitoConfig;
-  private tipAccounts: PublicKey[] = [];
-  private currentTipIndex: number = 0;
+  private tipAccounts: string[] = DEFAULT_TIP_ACCOUNTS;
+  private currentTipIdx: number = 0;
   private keypair: Keypair | null = null;
-  private _available: boolean = false;
-  private grpcAvailable: boolean = false;
+  private payer: Keypair | null = null;
   private grpcClient: any = null;
+  private grpcOk: boolean = false;
+  private _available: boolean = false;
 
   constructor(connection: Connection) {
     this.connection = connection;
     this.config = {
-      blockEngineUrl: process.env.JITO_BLOCK_ENGINE_URL || 'frankfurt.mainnet.block-engine.jito.wtf',
+      blockEngineUrl: process.env.JITO_BLOCK_ENGINE_URL || 'frankfurt.mainnet.block-engine.jito.wtf:443',
       authKeypairPath: process.env.JITO_AUTH_KEYPAIR_PATH || '.keypair/auth-id.json',
-      rpcUrl: process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com'
+      rpcUrl: process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com',
     };
   }
 
   async initialize(): Promise<void> {
-    console.log('[JITO] Initializing...');
+    console.log('[JITO] Init...');
     try {
-      // Load auth keypair
-      const resolvedPath = path.isAbsolute(this.config.authKeypairPath)
+      const rp = path.isAbsolute(this.config.authKeypairPath)
         ? this.config.authKeypairPath
         : path.resolve(process.cwd(), this.config.authKeypairPath);
-      const keypairData = fs.readFileSync(resolvedPath, 'utf-8');
-      const secretKey = Uint8Array.from(JSON.parse(keypairData));
-      this.keypair = Keypair.fromSecretKey(secretKey);
-      console.log(`[JITO] Auth keypair loaded: ${this.keypair.publicKey.toBase58()}`);
+      const raw = JSON.parse(fs.readFileSync(rp, 'utf-8'));
+      this.payer = Keypair.fromSecretKey(Uint8Array.from(raw));
+      console.log(`[JITO] Payer: ${this.payer.publicKey.toBase58()}`);
 
-      // Try gRPC initialization (primary path)
-      await this.initGrpc();
-
-      // Get tip accounts for future use (via REST — works for queries)
-      await this.fetchTipAccountsREST();
-
+      await this.tryGrpc();
       this._available = true;
-      console.log(`[JITO] Ready — gRPC: ${this.grpcAvailable ? 'YES' : 'NO'}, ${this.tipAccounts.length} tip accounts`);
-    } catch (error: any) {
-      console.warn('[JITO] Init warning:', error.message);
+      console.log(`[JITO] Ready — gRPC:${this.grpcOk?'✅':'❌'} tips:${this.tipAccounts.length}`);
+    } catch (e: any) {
+      console.warn('[JITO] Init fail:', e.message);
     }
   }
 
-  private async initGrpc(): Promise<void> {
+  private async tryGrpc(): Promise<void> {
     try {
-      // Try to load jito-ts gen modules (gRPC)
-      const searcherPath = path.resolve(process.cwd(), 'node_modules/jito-ts/dist/gen/block-engine/searcher.js');
-      if (!fs.existsSync(searcherPath)) {
-        console.log('[JITO] jito-ts gen modules not found');
-        return;
-      }
+      const gen = path.resolve(process.cwd(), 'node_modules/jito-ts/dist/gen/block-engine/searcher.js');
+      if (!fs.existsSync(gen)) { console.log('[JITO] gen not found'); return; }
+      const s = require(gen);
+      if (!s.SearcherServiceClient) { console.log('[JITO] no client'); return; }
 
-      const searcher = require(searcherPath);
+      const creds = grpc.credentials.createSsl();
+      this.grpcClient = new s.SearcherServiceClient(this.config.blockEngineUrl, creds);
 
-      if (!searcher.SearcherServiceClient) {
-        console.log('[JITO] SearcherServiceClient not found in jito-ts gen');
-        return;
-      }
-
-      const address = this.config.blockEngineUrl.includes(':')
-        ? this.config.blockEngineUrl
-        : this.config.blockEngineUrl + ':443';
-
-      const grpc = require('@grpc/grpc-js');
-      const channelCredentials = grpc.credentials.createSsl();
-      this.grpcClient = new searcher.SearcherServiceClient(address, channelCredentials);
-
-      // Test: fetch tip accounts via gRPC
-      const tipAccounts = await this.grpcCallTipAccounts(grpc, searcher);
-      if (tipAccounts && tipAccounts.length > 0) {
-        this.tipAccounts = tipAccounts;
-        this.grpcAvailable = true;
-        console.log(`[JITO] gRPC connected — ${tipAccounts.length} tip accounts`);
-      }
-    } catch (err: any) {
-      console.log(`[JITO] gRPC init failed (${err.message}), using direct RPC for submission`);
+      const tips: string[] = await new Promise((res, rej) => {
+        const d = new Date(Date.now() + 10_000);
+        this.grpcClient.getTipAccounts({}, { deadline: d }, (e: any, r: any) =>
+          e ? rej(e) : res(r?.accounts || [])
+        );
+      });
+      if (tips.length > 0) { this.tipAccounts = tips; this.grpcOk = true; }
+      console.log(`[JITO] gRPC ok — ${tips.length} tips`);
+    } catch (e: any) {
+      console.log('[JITO] gRPC fail:', e.message);
     }
   }
 
-  private grpcCallTipAccounts(grpc: any, searcher: any): Promise<string[]> {
-    return new Promise((resolve, reject) => {
-      const deadline = new Date(Date.now() + 10_000);
-      this.grpcClient.GetTipAccounts({}, { deadline }, (error: any, response: any) => {
-        if (error) reject(new Error(error.message));
-        else resolve(response?.accounts || []);
-      });
-    });
-  }
-
-  private async fetchTipAccountsREST(): Promise<void> {
-    try {
-      const url = `https://${this.config.blockEngineUrl.replace(/^https?:\/\//, '').replace(/\/.*$/, '')}/api/v1/bundles`;
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getTipAccounts', params: [] })
-      });
-      const data: any = await response.json();
-      if (data.result && Array.isArray(data.result)) {
-        this.tipAccounts = data.result.map((acc: string) => new PublicKey(acc));
-      }
-    } catch {
-      // Use defaults if REST fails
-      if (this.tipAccounts.length === 0) {
-        this.tipAccounts = [
-          '96gYZGLnJYVFmbjzopPSU6QiEV5fGqZNyN9nmNhvrZU5',
-          'Cw8CFyM9FkoMi7K7Crf6HNQqf4uEMzpKw6QNghXLvLkY',
-          'ADuUkR4vqLUMWXxW9gh6D6L8pMSawimctcNZ5pGwDcEt',
-        ].map(pk => new PublicKey(pk));
-      }
-    }
-  }
-
-  getNextTipAccount(): PublicKey | null {
-    if (this.tipAccounts.length === 0) return null;
-    const tip = this.tipAccounts[this.currentTipIndex];
-    this.currentTipIndex = (this.currentTipIndex + 1) % this.tipAccounts.length;
-    return tip;
+  getNextTipAccount(): PublicKey {
+    const a = this.tipAccounts[this.currentTipIdx];
+    this.currentTipIdx = (this.currentTipIdx + 1) % this.tipAccounts.length;
+    return new PublicKey(a);
   }
 
   async submitBundle(
-    transactions: VersionedTransaction[],
-    payerPublicKey: PublicKey
+    txs: VersionedTransaction[],
+    payerPubkey: PublicKey
   ): Promise<{ bundleId: string; healthScore?: number }> {
-    // Path 1: gRPC bundle submission (real Jito bundles)
-    if (this.grpcAvailable && this.grpcClient) {
-      return this.submitBundleGRPC(transactions);
+    if (this.grpcOk && this.grpcClient && this.payer) {
+      try { return await this.submitGRPC(txs); } catch (e: any) {
+        console.log('[JITO] gRPC fail, fallback:', e.message);
+      }
     }
-
-    // Path 2: Direct Solana RPC (works, confirmed)
-    return this.submitDirectRPC(transactions);
+    return this.submitRPC(txs);
   }
 
-  private async submitBundleGRPC(
-    transactions: VersionedTransaction[]
-  ): Promise<{ bundleId: string; healthScore?: number }> {
-    const bundleModule = require(path.resolve(process.cwd(), 'node_modules/jito-ts/dist/gen/block-engine/bundle.js'));
-    const packetModule = require(path.resolve(process.cwd(), 'node_modules/jito-ts/dist/gen/block-engine/packet.js'));
-    const searcherModule = require(path.resolve(process.cwd(), 'node_modules/jito-ts/dist/gen/block-engine/searcher.js'));
+  private async submitGRPC(txs: VersionedTransaction[]): Promise<{ bundleId: string; healthScore?: number }> {
+    const s = require(path.resolve(process.cwd(), 'node_modules/jito-ts/dist/gen/block-engine/searcher.js'));
+    const bm = require(path.resolve(process.cwd(), 'node_modules/jito-ts/dist/gen/block-engine/bundle.js'));
+    const pm = require(path.resolve(process.cwd(), 'node_modules/jito-ts/dist/gen/block-engine/packet.js'));
 
-    // Build packets
-    const packets = transactions.map(tx => packetModule.Packet.create({
-      data: Buffer.from(tx.serialize()),
-      meta: { size: 0, addr: '', port: 0, flags: undefined, senderStake: 0 }
-    }));
+    // Check if any tx in the bundle already tips a Jito account
+    const needsTip = !txs.some(tx => {
+      const m = (tx as any).message;
+      return m?.staticAccountKeys?.some((k: PublicKey) =>
+        this.tipAccounts.some(t => k.toBase58() === t)
+      );
+    });
 
-    const bundle = bundleModule.Bundle.create({ packets });
-    const request = searcherModule.SendBundleRequest.create({ bundle });
+    let finalTxs = txs;
+    if (needsTip && this.payer) {
+      console.log('[JITO] Adding tip tx to bundle');
+      const tipAcct = this.getNextTipAccount();
+      const bh = await this.connection.getLatestBlockhash('finalized');
+      const ix = SystemProgram.transfer({
+        fromPubkey: this.payer.publicKey,
+        toPubkey: tipAcct,
+        lamports: MIN_TIP,
+      });
+      const msg = new TransactionMessage({
+        payerKey: this.payer.publicKey,
+        recentBlockhash: bh.blockhash,
+        instructions: [ix],
+      }).compileToV0Message();
+      const tipTx = new VersionedTransaction(msg);
+      tipTx.sign([this.payer]);
+      finalTxs = [...txs, tipTx];
+    }
 
-    return new Promise((resolve, reject) => {
-      const deadline = new Date(Date.now() + 15_000);
-      this.grpcClient.SendBundle(request, { deadline }, (error: any, response: any) => {
-        if (error) {
-          console.log(`[JITO] gRPC SendBundle failed: ${error.message}`);
-          // Fallback to direct RPC
-          this.submitDirectRPC(transactions).then(resolve).catch(reject);
-          return;
-        }
-        const bundleId = response?.uuid || `bundle_${Date.now()}`;
-        console.log(`[JITO] Bundle submitted via gRPC: ${bundleId}`);
-        resolve({ bundleId, healthScore: 75 });
+    const packets = finalTxs.map((tx: VersionedTransaction) =>
+      pm.Packet.create({ data: Buffer.from(tx.serialize()), meta: { size: 0, addr: '', port: 0, senderStake: 0 } })
+    );
+    const bundle = bm.Bundle.create({ packets });
+    const req = s.SendBundleRequest.create({ bundle });
+
+    return new Promise((res, rej) => {
+      const d = new Date(Date.now() + 15_000);
+      this.grpcClient.sendBundle(req, { deadline: d }, (err: any, resp: any) => {
+        if (err) return rej(new Error(err.message));
+        const id = resp?.uuid || `bundle_${Date.now()}`;
+        console.log(`[JITO] Bundle sent ✅ ${id}`);
+        res({ bundleId: id, healthScore: 75 });
       });
     });
   }
 
-  private async submitDirectRPC(
-    transactions: VersionedTransaction[]
-  ): Promise<{ bundleId: string; healthScore?: number }> {
-    console.log(`[JITO] Submitting ${transactions.length} tx(s) directly to Solana RPC`);
-    const signatures: string[] = [];
-
-    for (const tx of transactions) {
-      try {
-        const sig = await this.connection.sendTransaction(tx, {
-          skipPreflight: true,
-          maxRetries: 2,
-        });
-        console.log(`[JITO] Direct RPC tx: ${sig}`);
-        signatures.push(sig);
-      } catch (rpcErr: any) {
-        console.warn(`[JITO] Direct RPC failed: ${rpcErr.message}`);
-        throw rpcErr;
-      }
+  private async submitRPC(txs: VersionedTransaction[]): Promise<{ bundleId: string; healthScore?: number }> {
+    console.log(`[JITO] Direct RPC: ${txs.length} tx(s)`);
+    const sigs: string[] = [];
+    for (const tx of txs) {
+      const s = await this.connection.sendTransaction(tx, { skipPreflight: true, maxRetries: 2 });
+      sigs.push(s);
     }
-
-    return {
-      bundleId: signatures.length > 0 ? signatures[0] : `direct_${Date.now()}`,
-      healthScore: 50,
-    };
+    return { bundleId: sigs[0] || `direct_${Date.now()}`, healthScore: 50 };
   }
 
-  isAvailable(): boolean {
-    return this._available;
-  }
-
-  hasGrpc(): boolean {
-    return this.grpcAvailable;
-  }
+  isAvailable() { return this._available; }
+  hasGrpc() { return this.grpcOk; }
 }

@@ -26,6 +26,7 @@ import * as path from 'path';
 // ===== Stack Imports =====
 import { JitoManager } from './jito-manager.js';
 import { HebbianTipOptimizer } from './hebbian-optimizer.js';
+import { ensureJitoStubs } from './setup-jito.js';
 import { buildBrief, BriefData } from './morning-brief.js';
 
 // ===== Configuration =====
@@ -75,6 +76,9 @@ let jitoReady = false;
 
 async function initializeStack() {
   console.log('[STACK] Initializing solana-tx-stack components...');
+
+  // 0. Ensure jito-ts protobuf stubs exist
+  ensureJitoStubs();
 
   // 1. Hebbian Optimizer
   hebbianOptimizer = new HebbianTipOptimizer();
@@ -428,7 +432,7 @@ async function handleStatus(res: http.ServerResponse) {
       bundleSuccessRate: bundleCount > 0 ? `${Math.round((bundleSuccessCount / bundleCount) * 100)}%` : 'N/A'
     },
     stack: {
-      jito: jitoReady ? 'connected' : 'disconnected',
+      jito: jitoManager?.hasGrpc() ? 'connected (gRPC)' : (jitoReady ? 'connected' : 'disconnected'),
       hebbian: !!hebbianOptimizer,
       rpc: RPC_URL.replace(/\/\/[^:]*:[^@]*@/, '//***:***@'),
       paymentStandard: X402_ENABLED ? 'x402 (ON)' : 'disabled (dev mode)'
