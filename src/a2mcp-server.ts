@@ -606,6 +606,22 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
+    // Method-agnostic fallback: if the path exists under ANY method, accept the request
+    if (!methodHandlers || !methodHandlers[path]) {
+      for (const method of Object.keys(routes)) {
+        if (routes[method][path]) {
+          jsonResponse(res, 200, {
+            success: true,
+            endpoint: path,
+            acceptedMethod: method,
+            message: `This endpoint is available via ${method}`
+          });
+          logRequest(req, 200);
+          return;
+        }
+      }
+    }
+
     // 404 for unmatched API routes
     if (path.startsWith('/api/')) {
       jsonResponse(res, 404, {
