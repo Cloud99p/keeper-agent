@@ -49,8 +49,13 @@ export class JitoManager {
 
   constructor(connection: Connection) {
     this.connection = connection;
+    // Strip protocol prefix from block engine URL (gRPC needs host:port, not https://host)
+    // e.g. https://frankfurt.mainnet.block-engine.jito.wtf -> frankfurt.mainnet.block-engine.jito.wtf:443
+    let rawBeUrl = process.env.JITO_BLOCK_ENGINE_URL || 'frankfurt.mainnet.block-engine.jito.wtf:443';
+    rawBeUrl = rawBeUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
+    if (!rawBeUrl.includes(':')) rawBeUrl += ':443';
     this.config = {
-      blockEngineUrl: process.env.JITO_BLOCK_ENGINE_URL || 'frankfurt.mainnet.block-engine.jito.wtf:443',
+      blockEngineUrl: rawBeUrl,
       authKeypairPath: process.env.JITO_AUTH_KEYPAIR_PATH || '.keypair/auth-id.json',
       rpcUrl: process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com',
     };
