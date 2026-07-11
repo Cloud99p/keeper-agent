@@ -14,10 +14,12 @@
  * missing well-known type. This is already handled.
  */
 
-import { Connection, Keypair, PublicKey, VersionedTransaction, SystemProgram, TransactionMessage } from '@solana/web3.js';
+import { Connection, Keypair, PublicKey, VersionedTransaction, Transaction, SystemProgram, TransactionMessage } from '@solana/web3.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as grpc from '@grpc/grpc-js';
+import { createRequire } from 'module';
+const _require = createRequire(import.meta.url);
 
 const DEFAULT_TIP_ACCOUNTS: string[] = [
   'HFqU5x63VTqvQss8hp11i4wVV8bD44PvwucfZ2bU7gRe',
@@ -76,7 +78,7 @@ export class JitoManager {
     try {
       const gen = path.resolve(process.cwd(), 'node_modules/jito-ts/dist/gen/block-engine/searcher.js');
       if (!fs.existsSync(gen)) { console.log('[JITO] gen not found'); return; }
-      const s = require(gen);
+      const s = _require(gen);
       if (!s.SearcherServiceClient) { console.log('[JITO] no client'); return; }
 
       const creds = grpc.credentials.createSsl();
@@ -114,9 +116,15 @@ export class JitoManager {
   }
 
   private async submitGRPC(txs: VersionedTransaction[]): Promise<{ bundleId: string; healthScore?: number }> {
-    const s = require(path.resolve(process.cwd(), 'node_modules/jito-ts/dist/gen/block-engine/searcher.js'));
-    const bm = require(path.resolve(process.cwd(), 'node_modules/jito-ts/dist/gen/block-engine/bundle.js'));
-    const pm = require(path.resolve(process.cwd(), 'node_modules/jito-ts/dist/gen/block-engine/packet.js'));
+    const searcherPath = path.resolve(process.cwd(), 'node_modules/jito-ts/dist/gen/block-engine/searcher.js');
+    const bundlePath = path.resolve(process.cwd(), 'node_modules/jito-ts/dist/gen/block-engine/bundle.js');
+    const packetPath = path.resolve(process.cwd(), 'node_modules/jito-ts/dist/gen/block-engine/packet.js');
+    if (!fs.existsSync(searcherPath) || !fs.existsSync(bundlePath) || !fs.existsSync(packetPath)) {
+      throw new Error('Jito gen modules not found — run ensureJitoStubs first');
+    }
+    const s = _require(searcherPath);
+    const bm = _require(bundlePath);
+    const pm = _require(packetPath);
 
     // Check if any tx in the bundle already tips a Jito account
     const needsTip = !txs.some(tx => {

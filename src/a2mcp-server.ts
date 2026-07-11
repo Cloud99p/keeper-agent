@@ -19,7 +19,7 @@ dotenv.config();
 
 import http from 'http';
 import { URL } from 'url';
-import { Connection, Keypair, PublicKey, VersionedTransaction } from '@solana/web3.js';
+import { Connection, Keypair, PublicKey, VersionedTransaction, Transaction, TransactionMessage } from '@solana/web3.js';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -237,11 +237,35 @@ async function handleBundleSubmit(req: http.IncomingMessage, res: http.ServerRes
     if (jitoReady && jitoManager) {
       // REAL Jito submission
       try {
-        // Deserialize transactions
-        const decodedTxs = transactions.map((tx: string) => {
-          const buf = Buffer.from(tx, 'base64');
-          return VersionedTransaction.deserialize(buf);
-        });
+        // Deserialize transactions with fallback for malformed/large payloads
+        const decodedTxs: VersionedTransaction[] = [];
+        const deserializeErrors: string[] = [];
+        for (let i = 0; i < transactions.length; i++) {
+          try {
+            const buf = Buffer.from(transactions[i], 'base64');
+            // Skip byte-order checks — try V0 deserialize, fallback to legacy Transaction
+            decodedTxs.push(VersionedTransaction.deserialize(buf));
+          } catch (e1: any) {
+            try {
+              // Fallback: try legacy Transaction, then re-serialize as Versioned
+              const legacyTx = Transaction.from(Buffer.from(transactions[i], 'base64'));
+              const bh = await connection.getLatestBlockhash('finalized');
+              const msg = legacyTx.compileMessage();
+              const v0Msg = TransactionMessage.decompile(msg);
+              const versioned = new VersionedTransaction(v0Msg.compileToV0Message());
+              versioned.addSignature(legacyTx.signature!);
+              decodedTxs.push(versioned);
+            } catch (e2: any) {
+              deserializeErrors.push(`tx[${i}]: ${e1.message} / fallback: ${e2.message}`);
+            }
+          }
+        }
+        if (decodedTxs.length === 0) {
+          throw new Error(`Failed to deserialize any transactions: ${deserializeErrors.join('; ')}`);
+        }
+        if (deserializeErrors.length > 0) {
+          console.warn('[BUNDLE] Partial deserialization:', deserializeErrors.join(' | '));
+        }
 
         // Get the payer keypair
         const resolvedPath = path.isAbsolute(AUTH_KEYPAIR_PATH)
