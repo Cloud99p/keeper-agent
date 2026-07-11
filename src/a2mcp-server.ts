@@ -340,7 +340,8 @@ async function handleBundleSubmit(req: http.IncomingMessage, res: http.ServerRes
         result.networkHealth = submitResult.healthScore;
         result.recommendedTip = recommendation?.recommendedTip || minTip;
         result.confidence = recommendation?.confidence || null;
-        result.message = 'Bundle submitted to Jito';
+        result.grpcError = submitResult.grpcError || null;
+        result.message = submitResult.grpcError ? `Bundle submitted via RPC (gRPC: ${submitResult.grpcError})` : 'Bundle submitted to Jito';
 
       } catch (err: any) {
         bundleFailCount++;

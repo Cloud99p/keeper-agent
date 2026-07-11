@@ -111,10 +111,11 @@ export class JitoManager {
   async submitBundle(
     txs: VersionedTransaction[],
     payerPubkey: PublicKey
-  ): Promise<{ bundleId: string; healthScore?: number }> {
+  ): Promise<{ bundleId: string; healthScore?: number; grpcError?: string }> {
     if (this.grpcOk && this.grpcClient && this.payer) {
       try { return await this.submitGRPC(txs); } catch (e: any) {
-        console.log('[JITO] gRPC fail, fallback:', e.message);
+        console.log('[JITO] gRPC fail, fallback:', e.message, e.stack?.split('\n').slice(0,3).join(' | '));
+        return this.submitRPC(txs, e.message);
       }
     }
     return this.submitRPC(txs);
@@ -176,14 +177,14 @@ export class JitoManager {
     });
   }
 
-  private async submitRPC(txs: VersionedTransaction[]): Promise<{ bundleId: string; healthScore?: number }> {
+  private async submitRPC(txs: VersionedTransaction[], grpcError?: string): Promise<{ bundleId: string; healthScore?: number; grpcError?: string }> {
     console.log(`[JITO] Direct RPC: ${txs.length} tx(s)`);
     const sigs: string[] = [];
     for (const tx of txs) {
       const s = await this.connection.sendTransaction(tx, { skipPreflight: true, maxRetries: 2 });
       sigs.push(s);
     }
-    return { bundleId: sigs[0] || `direct_${Date.now()}`, healthScore: 50 };
+    return { bundleId: sigs[0] || `direct_${Date.now()}`, healthScore: 50, grpcError };
   }
 
   isAvailable() { return this._available; }
