@@ -28,6 +28,9 @@ import { JitoManager } from './jito-manager.js';
 import { HebbianTipOptimizer } from './hebbian-optimizer.js';
 import { ensureJitoStubs } from './setup-jito.js';
 import { buildBrief, BriefData } from './morning-brief.js';
+import { FailureReasoningAgent, RetryParameters, NetworkHealthContext } from './ai-agent.js';
+import { loadConfig } from './config.js';
+import { FailureContext, FailureType, BundleStage } from './lifecycle.js';
 
 // ===== Configuration =====
 const PORT = parseInt(process.env.PORT || '8080');
@@ -72,6 +75,7 @@ const connection = new Connection(RPC_URL, { commitment: SOLANA_COMMITMENT as an
 // ===== Stack Components =====
 let jitoManager: JitoManager | null = null;
 let hebbianOptimizer: HebbianTipOptimizer | null = null;
+let failureAgent: FailureReasoningAgent | null = null;
 let jitoReady = false;
 
 async function initializeStack() {
@@ -84,7 +88,16 @@ async function initializeStack() {
   hebbianOptimizer = new HebbianTipOptimizer();
   console.log('[STACK] HebbianTipOptimizer initialized');
 
-  // 2. Jito Manager (only if keypair exists)
+  // 2. Failure Reasoning Agent (with DeepSeek if AI_API_KEY configured)
+  try {
+    const cfg = loadConfig();
+    failureAgent = new FailureReasoningAgent(cfg);
+    console.log('[STACK] FailureReasoningAgent initialized');
+  } catch (err: any) {
+    console.warn('[STACK] FailureReasoningAgent init skipped:', err.message);
+  }
+
+  // 3. Jito Manager (only if keypair exists)
   if (AUTH_KEYPAIR_PATH) {
     const resolvedPath = path.isAbsolute(AUTH_KEYPAIR_PATH)
       ? AUTH_KEYPAIR_PATH
@@ -296,6 +309,33 @@ async function handleBundleSubmit(req: http.IncomingMessage, res: http.ServerRes
           ? await hebbianOptimizer.recommendTip({ healthScore: submitResult.healthScore || 70, skipRate: 0.15, leaderQuality: 0.8 })
           : null;
 
+        // DeepSeek reasoning: analyze network conditions for successful submission
+        if (failureAgent) {
+          try {
+            const fc: FailureContext = {
+              failureType: 'unknown',
+              failureStage: 'submitted',
+              submissionSlot: slot,
+              submissionTimestamp: Date.now(),
+              blockhashSlot: slot,
+              blockhashAge: 0,
+              slotConditions: { skipRate: 0.15, congestionLevel: 0.3, leaderQuality: 0.75 },
+              recentTips: [],
+              submissionLatency: 0,
+            };
+            const retryParams: RetryParameters = await failureAgent.analyzeFailure(fc);
+            result.deepseekAnalysis = retryParams.reasoning;
+            result.deepseek = {
+              enabled: true,
+              confidence: retryParams.reasoning.confidence,
+              action: retryParams.reasoning.decision.action,
+              reasoning: retryParams.reasoning.decision.reasoning_summary,
+            };
+          } catch (e: any) {
+            console.warn('[AGENT] DeepSeek analysis skipped:', e.message);
+          }
+        }
+
         result.bundleId = submitResult.bundleId;
         result.networkHealth = submitResult.healthScore;
         result.recommendedTip = recommendation?.recommendedTip || minTip;
@@ -315,6 +355,48 @@ async function handleBundleSubmit(req: http.IncomingMessage, res: http.ServerRes
             skipRate: 0.15,
             leaderQuality: 0.5
           });
+        }
+
+        // DeepSeek reasoning: analyze the failure for retry recommendation
+        if (failureAgent) {
+          try {
+            const failureType: FailureType = err.message.includes('blockhash') || err.message.includes('expire')
+              ? 'expired_blockhash'
+              : err.message.includes('fee') || err.message.includes('tip')
+                ? 'fee_too_low'
+                : err.message.includes('timeout')
+                  ? 'timeout'
+                  : err.message.includes('compute')
+                    ? 'compute_exceeded'
+                    : 'bundle_rejected';
+
+            const fc: FailureContext = {
+              failureType,
+              failureStage: 'submitted',
+              submissionSlot: slot,
+              submissionTimestamp: Date.now(),
+              blockhashSlot: slot,
+              blockhashAge: 0,
+              slotConditions: { skipRate: 0.15, congestionLevel: 0.3, leaderQuality: 0.75 },
+              recentTips: [],
+              submissionLatency: 0,
+            };
+            const retryParams: RetryParameters = await failureAgent.analyzeFailure(fc);
+            result.deepseek = {
+              enabled: true,
+              confidence: retryParams.reasoning.confidence,
+              action: retryParams.reasoning.decision.action,
+              reasoning: retryParams.reasoning.decision.reasoning_summary,
+              retryParameters: {
+                shouldRetry: retryParams.shouldRetry,
+                tipAdjustmentPercent: retryParams.tipAdjustment,
+                delayMs: retryParams.delayMs,
+                refreshBlockhash: retryParams.refreshBlockhash,
+              },
+            };
+          } catch (e: any) {
+            console.warn('[AGENT] Failure analysis skipped:', e.message);
+          }
         }
 
         result.message = 'Bundle prepared but Jito submission failed';
@@ -442,10 +524,18 @@ async function handleStatus(res: http.ServerResponse) {
     uptime: `${uptime}s`,
     uptimeHuman: formatUptime(uptime),
     capabilities: [
-      { name: 'bundle', description: 'Submit optimized Jito bundles', price: `${PRICE_PER_BUNDLE} USDT`, live: jitoReady },
-      { name: 'analyze', description: 'Analyze transactions for MEV opportunities', price: `${PRICE_PER_ANALYSIS} USDT` },
-      { name: 'insights', description: 'Hebbian learning insights', price: 'free' }
+      { name: 'bundle', description: 'Submit optimized Jito bundles with DeepSeek AI reasoning', price: `${PRICE_PER_BUNDLE} USDT`, live: jitoReady },
+      { name: 'analyze', description: 'Analyze transactions for MEV opportunities using DeepSeek AI', price: `${PRICE_PER_ANALYSIS} USDT` },
+      { name: 'insights', description: 'Hebbian learning insights + DeepSeek reasoning log', price: 'free' }
     ],
+    ai: failureAgent ? {
+      deepseekEnabled: true,
+      stats: failureAgent.getStats(),
+      totalAnalyses: failureAgent.getReasoningLog().length,
+    } : {
+      deepseekEnabled: false,
+      message: 'Set AI_API_KEY env var to enable DeepSeek reasoning'
+    },
     stats: {
       totalBundles: bundleCount,
       bundleSuccess: bundleSuccessCount,
@@ -586,10 +676,10 @@ const routes: Record<string, Record<string, (req: http.IncomingMessage, res: htt
           { path: 'GET /api/v1/health', description: 'Health check' },
           { path: 'GET /api/v1/status', description: 'Agent status & capabilities' },
           { path: 'GET /api/v1/metrics', description: 'Performance metrics' },
-          { path: 'GET /api/v1/insights', description: 'Hebbian learning insights' },
+          { path: 'GET /api/v1/insights', description: 'Hebbian learning insights + DeepSeek reasoning log' },
           { path: 'GET /api/v1/brief', description: 'Morning market brief' },
-          { path: 'POST /api/v1/bundle', description: 'Submit Jito bundle', pricing: `${PRICE_PER_BUNDLE} USDT` },
-          { path: 'POST /api/v1/analyze', description: 'Analyze for MEV opportunities', pricing: `${PRICE_PER_ANALYSIS} USDT` },
+          { path: 'POST /api/v1/bundle', description: 'Submit Jito bundle with DeepSeek AI analysis', pricing: `${PRICE_PER_BUNDLE} USDT` },
+          { path: 'POST /api/v1/analyze', description: 'Analyze for MEV opportunities with DeepSeek AI', pricing: `${PRICE_PER_ANALYSIS} USDT` },
           { path: 'POST /api/v1/learn', description: 'Feed bundle outcome for Hebbian learning' },
         ]
       });
@@ -698,6 +788,7 @@ initializeStack().then(() => {
 ║  Mode:    A2MCP ${X402_ENABLED ? '(x402 ON)' : '(dev mode)'.padEnd(24)}║
 ║  Jito:    ${(jitoReady ? '✅ LIVE' : '❌ API-ONLY').padEnd(37)}║
 ║  Hebbian: ${'✅ ON'.padEnd(37)}║
+║  AI:      ${(failureAgent ? '✅ DeepSeek' : '❌ N/A').padEnd(37)}║
 ║  Port:    ${String(PORT).padEnd(37)}║
 ║  Agent:   ${AGENT_ID.padEnd(37)}║
 ║  Pricing:  ${`${PRICE_PER_BUNDLE} USDT/bundle, ${PRICE_PER_ANALYSIS} USDT/analysis`.padEnd(23)}║
