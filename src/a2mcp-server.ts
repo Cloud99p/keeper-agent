@@ -65,8 +65,8 @@ ensureKeypairFile();
 const DEBUG = process.env.DEBUG === 'true';
 
 // Pricing
-const PRICE_PER_BUNDLE = parseInt(process.env.PRICE_PER_BUNDLE || '10');
-const PRICE_PER_ANALYSIS = parseInt(process.env.PRICE_PER_ANALYSIS || '5');
+const PRICE_PER_BUNDLE = parseInt(process.env.PRICE_PER_BUNDLE || '2');
+const PRICE_PER_ANALYSIS = parseInt(process.env.PRICE_PER_ANALYSIS || '1');
 const MIN_TIP = parseInt(process.env.MIN_TIP_LAMPORTS || '1000');
 
 // ===== Solana Connection =====
