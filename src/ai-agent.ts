@@ -257,6 +257,7 @@ export class FailureReasoningAgent {
       compute_exceeded: 'compute unit limit exceeded',
       bundle_rejected: 'bundle rejected by leader',
       timeout: 'confirmation timeout',
+      submitted: 'bundle submitted successfully',
       unknown: 'unknown failure',
     };
 
@@ -780,3 +781,4 @@ export class FailureReasoningAgent {
     };
   }
 }
+

@@ -313,7 +313,7 @@ async function handleBundleSubmit(req: http.IncomingMessage, res: http.ServerRes
         if (failureAgent) {
           try {
             const fc: FailureContext = {
-              failureType: 'unknown',
+              failureType: 'submitted',
               failureStage: 'submitted',
               submissionSlot: slot,
               submissionTimestamp: Date.now(),

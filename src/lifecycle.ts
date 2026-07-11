@@ -21,6 +21,7 @@ export type FailureType =
   | 'compute_exceeded'
   | 'bundle_rejected'
   | 'timeout'
+  | 'submitted'
   | 'unknown';
 
 export interface StageTimestamp {
