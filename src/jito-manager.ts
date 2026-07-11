@@ -110,10 +110,11 @@ export class JitoManager {
 
   async submitBundle(
     txs: VersionedTransaction[],
-    payerPubkey: PublicKey
+    payerPubkey: PublicKey,
+    tipAmount: number = 1000
   ): Promise<{ bundleId: string; healthScore?: number; grpcError?: string }> {
     if (this.grpcOk && this.grpcClient && this.payer) {
-      try { return await this.submitGRPC(txs); } catch (e: any) {
+      try { return await this.submitGRPC(txs, tipAmount); } catch (e: any) {
         console.log('[JITO] gRPC fail, fallback:', e.message, e.stack?.split('\n').slice(0,3).join(' | '));
         return this.submitRPC(txs, e.message);
       }
@@ -121,7 +122,7 @@ export class JitoManager {
     return this.submitRPC(txs);
   }
 
-  private async submitGRPC(txs: VersionedTransaction[]): Promise<{ bundleId: string; healthScore?: number }> {
+  private async submitGRPC(txs: VersionedTransaction[], tipAmount: number = 1000): Promise<{ bundleId: string; healthScore?: number }> {
     const searcherPath = path.resolve(process.cwd(), 'node_modules/jito-ts/dist/gen/block-engine/searcher.js');
     const bundlePath = path.resolve(process.cwd(), 'node_modules/jito-ts/dist/gen/block-engine/bundle.js');
     const packetPath = path.resolve(process.cwd(), 'node_modules/jito-ts/dist/gen/block-engine/packet.js');
@@ -148,7 +149,7 @@ export class JitoManager {
       const ix = SystemProgram.transfer({
         fromPubkey: this.payer.publicKey,
         toPubkey: tipAcct,
-        lamports: MIN_TIP,
+        lamports: tipAmount,
       });
       const msg = new TransactionMessage({
         payerKey: this.payer.publicKey,

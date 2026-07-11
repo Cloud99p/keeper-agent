@@ -288,7 +288,7 @@ async function handleBundleSubmit(req: http.IncomingMessage, res: http.ServerRes
         const payer = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(keypairData)));
 
         // Submit the bundle
-        const submitResult = await jitoManager.submitBundle(decodedTxs, payer.publicKey);
+        const submitResult = await jitoManager.submitBundle(decodedTxs, payer.publicKey, minTip);
 
         bundleCount++;
         bundleSuccessCount++;
