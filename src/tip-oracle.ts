@@ -5,18 +5,28 @@
  * Falls back to heuristic estimates when API is unavailable.
  * 
  * API: https://bundles.jito.wtf/api/v1/bundles/tip_floor
- * Returns: { "time": "2026-07-23T...", "landing": 5123, "confirmed": 4122 }
- * landing = tip to get included in next slot
- * confirmed = tip for confirmation within a few slots
+ * Returns array of: { time, landed_tips_25th/50th/75th/95th/99th_percentile, ema_landed_tips_50th_percentile }
+ * All values in SOL (not lamports).
+ * We use ema_landed_tips_50th_percentile for the recommended tip.
  */
 
 import https from 'https';
 import http from 'http';
 
 interface JitoTipFloor {
-  landing: number;    // lamports — next slot inclusion
-  confirmed: number;  // lamports — confirmed within a few slots
+  landing: number;    // lamports — recommended tip for next slot inclusion
+  confirmed: number;  // lamports — slightly lower, confirmed within a few slots
   timestamp: number;
+}
+
+interface JitoApiResponseEntry {
+  time: string;
+  landed_tips_25th_percentile: number;
+  landed_tips_50th_percentile: number;
+  landed_tips_75th_percentile: number;
+  landed_tips_95th_percentile: number;
+  landed_tips_99th_percentile: number;
+  ema_landed_tips_50th_percentile: number;
 }
 
 interface CachedTip {
@@ -28,6 +38,7 @@ export class TipOracle {
   private cache: CachedTip = { data: null, fetchedAt: 0 };
   private cacheTtlMs: number;
   private apiUrl: string;
+  private lastSource: 'api' | 'stale' | 'heuristic' = 'heuristic';
 
   constructor(cacheTtlMs: number = 30_000) {
     this.cacheTtlMs = cacheTtlMs;
@@ -46,14 +57,15 @@ export class TipOracle {
     try {
       const result = await this.fetchTipFloor();
       this.cache = { data: result, fetchedAt: now };
+      this.lastSource = 'api';
       return result;
     } catch (err: any) {
       console.warn('[TIP-ORACLE] API fetch failed:', err.message);
-      // Return heuristic estimate based on previous cache or default
+      this.lastSource = this.cache.data ? 'stale' : 'heuristic';
       if (this.cache.data) return this.cache.data;
       return {
-        landing: 10_000,       // 0.00001 SOL — conservative default
-        confirmed: 5_000,      // 0.000005 SOL
+        landing: 10_000,
+        confirmed: 5_000,
         timestamp: now,
       };
     }
@@ -65,14 +77,14 @@ export class TipOracle {
    */
   async getRecommendedTip(priority: 'low' | 'medium' | 'high' = 'medium'): Promise<{
     lamports: number;
-    source: 'api' | 'cache' | 'heuristic';
+    source: 'api' | 'stale' | 'heuristic';
     floor: JitoTipFloor;
   }> {
     const floor = await this.getTipFloor();
     const now = Date.now();
-    const source = this.cache.data && (now - this.cache.fetchedAt) < this.cacheTtlMs
+    const source = this.cache.data && this.cache.fetchedAt > 0 && (now - this.cache.fetchedAt) < Math.max(this.cacheTtlMs, 100)
       ? 'api'
-      : this.cache.data ? 'cache' : 'heuristic';
+      : this.cache.data ? 'stale' : 'heuristic';
 
     const multipliers: Record<string, number> = {
       low: 0.8,
@@ -83,7 +95,7 @@ export class TipOracle {
     const base = floor.landing;
     const lamports = Math.max(Math.round(base * (multipliers[priority] || 1.0)), 1000);
 
-    return { lamports, source, floor };
+    return { lamports, source: this.lastSource, floor };
   }
 
   /**
@@ -100,13 +112,13 @@ export class TipOracle {
   async getMarketContext(): Promise<{
     tipFloorLamports: number;
     tipFloorSol: number;
-    confidence: 'api' | 'cache' | 'heuristic';
+    confidence: 'api' | 'stale' | 'heuristic';
   }> {
     const rec = await this.getRecommendedTip('medium');
     return {
       tipFloorLamports: rec.floor.landing,
       tipFloorSol: rec.floor.landing / 1_000_000_000,
-      confidence: rec.source as 'api' | 'cache' | 'heuristic',
+      confidence: rec.source as 'api' | 'stale' | 'heuristic',
     };
   }
 
@@ -119,25 +131,36 @@ export class TipOracle {
         res.on('end', () => {
           try {
             const parsed = JSON.parse(data);
-            // API returns object with time, landing, confirmed
-            if (parsed.landing !== undefined) {
+            // API returns array: [{ time, landed_tips_25th_percentile, ..., ema_landed_tips_50th_percentile }]
+            // All values are in SOL — convert to lamports
+            if (Array.isArray(parsed)) {
+              const entry: JitoApiResponseEntry = parsed[0];
+              if (!entry || entry.ema_landed_tips_50th_percentile === undefined) {
+                reject(new Error('Unexpected API response format: missing ema_landed_tips_50th_percentile'));
+                return;
+              }
+              // Convert SOL → lamports
+              const emaLanded = Math.round(entry.ema_landed_tips_50th_percentile * 1_000_000_000);
+              const p50 = entry.landed_tips_50th_percentile
+                ? Math.round(entry.landed_tips_50th_percentile * 1_000_000_000)
+                : emaLanded;
+              const p75 = entry.landed_tips_75th_percentile
+                ? Math.round(entry.landed_tips_75th_percentile * 1_000_000_000)
+                : emaLanded;
+              // EMA 50th (smoothed median) is most reliable for competitive tip
+              // Apply 1.3x buffer to beat the median
+              // Cap at p75 to avoid outlier-driven overpayment
+              const baseTip = Math.round(emaLanded * 1.3);
+              const landing = Math.min(Math.max(baseTip, 1000), p75);
+              const confirmed = Math.max(p50, 1000);
+              resolve({ landing, confirmed, timestamp: Date.now() });
+            } else if (typeof parsed === 'object' && parsed.landing !== undefined) {
+              // Legacy format fallback — values already in lamports
               resolve({
                 landing: Math.round(parsed.landing),
                 confirmed: Math.round(parsed.confirmed || parsed.landing * 0.8),
                 timestamp: Date.now(),
               });
-            } else if (Array.isArray(parsed)) {
-              // Sometimes API returns array of recent tips
-              const vals = parsed.filter((v: any) => typeof v === 'number');
-              if (vals.length > 0) {
-                resolve({
-                  landing: Math.round(vals[0]),
-                  confirmed: Math.round(vals[Math.min(2, vals.length - 1)]),
-                  timestamp: Date.now(),
-                });
-              } else {
-                reject(new Error('Unexpected API response format'));
-              }
             } else {
               reject(new Error('Unexpected API response format'));
             }
