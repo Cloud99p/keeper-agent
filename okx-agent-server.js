@@ -1,6 +1,6 @@
 /**
- * OKX.AI ASP Agent Server - Simple Version
- * Health check endpoint for OKX marketplace verification
+ * Keeper Agent - Execution Server (Simple)
+ * Health check endpoint for MCP marketplace
  */
 
 import http from 'http';
@@ -24,7 +24,7 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // HEALTH CHECK - OKX verifies this (GET and HEAD)
+  // HEALTH CHECK endpoint (GET and HEAD)
   if (url === '/health' && (req.method === 'GET' || req.method === 'HEAD')) {
     res.writeHead(200);
     if (req.method === 'GET') {
@@ -45,8 +45,8 @@ const server = http.createServer((req, res) => {
   if (url === '/status' && (req.method === 'GET' || req.method === 'HEAD')) {
     res.writeHead(200);
     res.end(JSON.stringify({
-      agentId: '3325',
-      name: 'Solana MEV Agent',
+      agentId: 'keeper-agent',
+      name: 'Keeper Agent',
       status: 'online',
       version: '1.0.0',
       capabilities: [
@@ -74,7 +74,7 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log('\n🚀 OKX Agent Server Running');
+  console.log('\n🚀 Keeper Agent Server Running');
   console.log(`   Port: ${PORT}`);
   console.log(`   URL: https://solana-mev-agent-okx.onrender.com`);
   console.log(`   Health: /health`);

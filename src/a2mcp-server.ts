@@ -1,8 +1,8 @@
 /**
- * A2MCP API Server - Solana MEV Agent
+ * A2MCP API Server - Keeper Agent
  *
  * Agent-to-MCP service for OKX.AI marketplace.
- * Integrates with the real solana-tx-stack:
+ * Integrates with the real keeper-agent:
  * - JitoManager for actual bundle submission
  * - HebbianTipOptimizer for ML-based tip learning
  * - Pre-flight simulation for safety
@@ -43,7 +43,7 @@ const PORT = parseInt(process.env.PORT || '8080');
 const RPC_URL = process.env.SOLANA_RPC_URL || process.env.RPC_URL || 'https://api.mainnet-beta.solana.com';
 const SOLANA_COMMITMENT = process.env.SOLANA_COMMITMENT || 'confirmed';
 const AGENT_ID = process.env.AGENT_ID || '3325';
-const AGENT_NAME = process.env.AGENT_NAME || 'Solana MEV Agent';
+const AGENT_NAME = process.env.AGENT_NAME || 'Keeper Agent';
 const AGENT_VERSION = process.env.AGENT_VERSION || '2.0.0-a2mcp';
 const X402_ENABLED = process.env.X402_ENABLED === 'true';
 const X402_WALLET = process.env.X402_WALLET || '';
@@ -89,7 +89,7 @@ let faultInjector: FaultInjector | null = null;
 let jitoReady = false;
 
 async function initializeStack() {
-  console.log('[STACK] Initializing solana-tx-stack components...');
+  console.log('[STACK] Initializing keeper-agent components...');
 
   // 0. Ensure jito-ts protobuf stubs exist
   ensureJitoStubs();
@@ -960,7 +960,7 @@ const routes: Record<string, Record<string, (req: http.IncomingMessage, res: htt
           { path: 'GET /api/v1/graph/insights', description: 'Pattern insights from knowledge graph' },
           { path: 'GET /api/v1/health/network', description: 'Network health score (0-100)' },
           { path: 'POST /api/v1/bundle', description: 'Submit Jito bundle with DeepSeek AI analysis', pricing: `${PRICE_PER_BUNDLE} USDT` },
-          { path: 'POST /api/v1/analyze', description: 'Analyze for MEV opportunities with DeepSeek AI', pricing: `${PRICE_PER_ANALYSIS} USDT` },
+          { path: 'POST /api/v1/analyze', description: 'Analyze for onchain opportunities with DeepSeek AI', pricing: `${PRICE_PER_ANALYSIS} USDT` },
           { path: 'POST /api/v1/learn', description: 'Feed bundle outcome for Hebbian learning' },
         ]
       });
@@ -1046,7 +1046,7 @@ code{background:#f4f4f4;padding:2px 6px;border-radius:4px;font-family:'Courier N
 <body>
 <h1>${AGENT_NAME} 🚀</h1>
 <p class="badge">A2MCP Service on OKX.AI</p>
-<p>Solana MEV Agent - Jito bundle submission with Hebbian tip optimization.</p>
+<p>Keeper Agent - Jito bundle submission with Hebbian tip optimization.</p>
 <h3>API Endpoints</h3>
 <ul>
 <li><code>GET /api/v1/health</code> - Service health</li>
@@ -1058,7 +1058,7 @@ code{background:#f4f4f4;padding:2px 6px;border-radius:4px;font-family:'Courier N
 <li><code>GET /api/v1/health/network</code> - Network health score</li>
 
 </ul>
-<p>Powered by <strong>solana-tx-stack</strong> v${AGENT_VERSION} | Jito: ${jitoReady ? '✅ LIVE' : '❌ API-ONLY'} | AI: ${failureAgent ? '✅ DeepSeek' : '❌ N/A'} | Proof: ${proofChain ? '✅ SHA-256' : '❌ N/A'}</p>
+<p>Powered by <strong>keeper-agent</strong> v${AGENT_VERSION} | Jito: ${jitoReady ? '✅ LIVE' : '❌ API-ONLY'} | AI: ${failureAgent ? '✅ DeepSeek' : '❌ N/A'} | Proof: ${proofChain ? '✅ SHA-256' : '❌ N/A'}</p>
 </body></html>`);
     }
 

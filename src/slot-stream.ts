@@ -187,7 +187,7 @@ export class SlotStream extends EventEmitter {
       // Send subscription request for slots
       this.grpcStream.write({
         slots: {
-          'solana-tx-stack': {}  // Named filter key
+          'keeper-agent': {}  // Named filter key
         },
         accounts: {},
         transactions: {},

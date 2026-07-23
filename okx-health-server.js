@@ -1,6 +1,6 @@
 /**
- * OKX.AI ASP Agent Health Server
- * Simple, bulletproof server for OKX health checks
+ * Keeper Agent Health Server
+ * Simple, bulletproof health server
  */
 
 import http from 'http';
@@ -45,7 +45,7 @@ const server = http.createServer((req, res) => {
         if (req.method === 'GET') {
             res.end(JSON.stringify({
                 agentId: '3512',
-                name: 'Solana MEV Agent',
+                name: 'Keeper Agent',
                 status: 'online',
                 version: '1.0.0',
                 capabilities: ['MEV bundle submission', 'Jito Block Engine integration'],
@@ -61,7 +61,7 @@ const server = http.createServer((req, res) => {
     // Root - simple OK message
     if (url === '/') {
         res.writeHead(200, { 'Content-Type': 'text/plain' });
-        res.end('Solana MEV Agent - OKX.AI ASP\nHealth: /health\nStatus: /status');
+        res.end('Keeper Agent\nHealth: /health\nStatus: /status');
         console.log('[✓] Root responded');
         return;
     }
@@ -73,7 +73,7 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, () => {
     console.log('='.repeat(60));
-    console.log('✅ OKX Agent Health Server Started');
+    console.log('✅ Keeper Agent Health Server Started');
     console.log('='.repeat(60));
     console.log(`📊 Port: ${PORT}`);
     console.log(`🔗 Health: http://localhost:${PORT}/health`);

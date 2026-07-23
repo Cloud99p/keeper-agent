@@ -7,7 +7,7 @@
 ## 🎯 Quick Decision Tree
 
 ```
-Are you using tx-stack for commercial purposes?
+Are you using keeper-agent for commercial purposes?
 │
 ├─ NO → MIT License (FREE) ✅
 │   ├─ Personal projects
@@ -31,7 +31,7 @@ Are you using tx-stack for commercial purposes?
 ### MIT License (FREE)
 
 **Files**:
-- All core tx-stack files EXCEPT ML components
+- All core keeper-agent files EXCEPT ML components
 - `src/jito-manager.ts`
 - `src/lifecycle.ts`
 - `src/ai-agent.ts` (core logic)

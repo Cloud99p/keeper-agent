@@ -32,7 +32,7 @@ import { getWebhookManager } from './webhooks.js';
 const RPC_URL = process.env.RPC_URL || clusterApiUrl('mainnet-beta');
 const SOLANA_COMMITMENT = (process.env.SOLANA_COMMITMENT || 'confirmed') as any;
 const AGENT_ID = process.env.AGENT_ID || '3325';
-const AGENT_NAME = process.env.AGENT_NAME || 'Solana MEV Agent';
+const AGENT_NAME = process.env.AGENT_NAME || 'Keeper Agent';
 const AGENT_VERSION = process.env.AGENT_VERSION || '3.0.0-full-stack';
 const DEBUG = process.env.DEBUG === 'true';
 const JITO_TIP_LAMPORTS = parseInt(process.env.JITO_TIP_LAMPORTS || '3000');
@@ -69,7 +69,7 @@ function err(msg: string) { console.error(`[INDEX] ${msg}`); }
 // ===== Initialization =====
 
 async function initializeStack(): Promise<void> {
-  log('Initializing solana-tx-stack full stack...');
+  log('Initializing keeper-agent full stack...');
 
   // 1. Hebbian optimizer (tip learning)
   hebbianOptimizer = new HebbianTipOptimizer();
@@ -313,7 +313,7 @@ function getStats() {
 async function main() {
   console.log();
   console.log('╔' + '═'.repeat(60) + '╗');
-  console.log('║     ' + '🤖 Solana TX-Stack (Full Stack)'.padEnd(56) + '║');
+  console.log('║     ' + '🤖 Solana keeper-agent (Full Stack)'.padEnd(56) + '║');
   console.log('╚' + '═'.repeat(60) + '╝');
   console.log();
 

@@ -1,7 +1,7 @@
 {
-  "name": "solana-tx-stack",
+  "name": "keeper-agent",
   "version": "3.0.0",
-  "description": "ML-powered Jito MEV bundle submission with AI reasoning, cryptographic proof chain, Hebbian learning, knowledge graph, and network health monitoring",
+  "description": "Onchain execution agent for KeeperHub hackathon — MCP server, x402 payments, smart gas estimation",
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
@@ -57,5 +57,9 @@
   "platform": [
     "x64",
     "arm64"
-  ]
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Cloud99p/keeper-agent.git"
+  }
 }

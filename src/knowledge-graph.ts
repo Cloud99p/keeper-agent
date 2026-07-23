@@ -4,12 +4,12 @@
  * Stores bundle outcomes as queryable knowledge nodes with semantic relationships.
  * Unlike static logs, this enables pattern discovery and similarity-based retrieval.
  * 
- * @module tx-stack/ml-enhanced
+ * @module keeper-agent/ml-enhanced
  * @author Emmanuel Nenpan Hosea
- * @license MIT (tx-stack core) - ML components powered by Omnilearn
+ * @license MIT (keeper-agent core) - ML components powered by Omnilearn
  * 
  * ML COMPONENT NOTICE:
- * This file is part of the ML Enhanced Edition of tx-stack.
+ * This file is part of the ML Enhanced Edition of keeper-agent.
  * Powered by Omnilearn Agent Framework © 2026 Emmanuel Nenpan Hosea - AGPL v3
  * Commercial use requires Omnilearn commercial license.
  * See: LICENSE-COMMERCIAL or contact emmanuelhosea09@gmail.com

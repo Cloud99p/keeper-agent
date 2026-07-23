@@ -77,8 +77,8 @@ git --version
 ### Clone Repository
 
 ```bash
-git clone https://github.com/Cloud99p/solana-tx-stack.git
-cd solana-tx-stack
+git clone https://github.com/Cloud99p/keeper-agent.git
+cd keeper-agent
 ```
 
 ### Install Dependencies
@@ -454,7 +454,7 @@ npm install --include=optional
 ### Community
 - [Solana Discord](https://discord.com/invite/solanacollective)
 - [Jito Discord](https://discord.gg/jito-labs)
-- [GitHub Issues](https://github.com/Cloud99p/solana-tx-stack/issues)
+- [GitHub Issues](https://github.com/Cloud99p/keeper-agent/issues)
 
 ---
 

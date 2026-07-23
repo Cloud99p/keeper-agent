@@ -19,7 +19,7 @@ services:
       - key: AGENT_ID
         value: "3325"
       - key: AGENT_NAME
-        value: "Solana MEV Agent"
+        value: "Keeper Agent"
       - key: AGENT_VERSION
         value: "2.0.0-a2mcp"
       - key: PRICE_PER_BUNDLE

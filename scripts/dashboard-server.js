@@ -1,5 +1,5 @@
 /**
- * Simple HTTP Server for TX-Stack Dashboard
+ * Simple HTTP Server for keeper-agent Dashboard
  * 
  * Usage: node scripts/dashboard-server.js
  * Then open: http://localhost:3000
@@ -55,7 +55,7 @@ const server = http.createServer((req, res) => {
         if (req.method === 'GET') {
             res.end(JSON.stringify({
                 agentId: '3512',
-                name: 'Solana MEV Agent',
+                name: 'Keeper Agent',
                 status: 'online',
                 version: '1.0.0',
                 capabilities: ['MEV bundle submission', 'Jito Block Engine integration'],
@@ -158,7 +158,7 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, () => {
     console.log('='.repeat(60));
-    console.log('🚀 TX-Stack Dashboard Server');
+    console.log('🚀 keeper-agent Dashboard Server');
     console.log('='.repeat(60));
     console.log(`📊 Dashboard running at: http://localhost:${PORT}`);
     console.log(`📁 Serving from: ${DASHBOARD_DIR}`);

@@ -66,7 +66,7 @@ console.log('✅ JSON Export: evidence/bounty_submission_{timestamp}.json');
 // ============================================
 // 2. Markdown Report (Human-Readable)
 // ============================================
-const mdReport = `# Solana TX-Stack - Bounty Submission Evidence
+const mdReport = `# Solana keeper-agent - Bounty Submission Evidence
 
 **Export Date:** ${new Date().toISOString()}  
 **Test Type:** ${metadata.testType || 'Full-Capability Demonstration'}  

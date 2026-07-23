@@ -128,9 +128,9 @@ async function main() {
     console.log('   ⚠️  WARNING: This is REAL money on mainnet!\n');
   }
 
-  // Configuration for solana-tx-stack
+  // Configuration for keeper-agent
   console.log('='.repeat(80));
-  console.log('⚙️  CONFIGURE SOLANA-TX-STACK');
+  console.log('⚙️  CONFIGURE keeper-agent');
   console.log('='.repeat(80));
   console.log('\n📝 Update .env file:\n');
   console.log(`   # For ${network.toUpperCase()} testing`);

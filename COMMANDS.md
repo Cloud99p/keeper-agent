@@ -103,8 +103,8 @@ All scripts in the `scripts/` folder. Run with `npx tsx scripts/<filename>`.
 
 ```bash
 # 1. Clone repo
-git clone https://github.com/Cloud99p/solana-tx-stack.git
-cd solana-tx-stack
+git clone https://github.com/Cloud99p/keeper-agent.git
+cd keeper-agent
 
 # 2. Install dependencies
 npm install
