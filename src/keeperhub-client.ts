@@ -332,6 +332,10 @@ export class KeeperHubClient {
           resolve({ status: res.statusCode || 500, body: parsed, headers: h });
         });
       });
+      req.setTimeout(5000, () => {
+        req.destroy();
+        reject(new Error(`Request timed out: ${url}`));
+      });
       req.on('error', reject);
       req.write(body);
       req.end();
@@ -366,6 +370,10 @@ export class KeeperHubClient {
           });
         }
       );
+      req.setTimeout(5000, () => {
+        req.destroy();
+        reject(new Error(`Request timed out: ${url}`));
+      });
       req.on('error', reject);
     });
   }
