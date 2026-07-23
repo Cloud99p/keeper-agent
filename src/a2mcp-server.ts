@@ -31,6 +31,10 @@ import { buildBrief, BriefData } from './morning-brief.js';
 import { FailureReasoningAgent, RetryParameters, NetworkHealthContext } from './ai-agent.js';
 import { loadConfig } from './config.js';
 import { FailureContext, FailureType, BundleStage } from './lifecycle.js';
+import { DecisionProofChain } from './proof-chain.js';
+import { TransactionKnowledgeGraph } from './knowledge-graph.js';
+import { NetworkHealthCalculator } from './network-health.js';
+import { FaultInjector, FaultType } from './fault-injector.js';
 
 // ===== Configuration =====
 const PORT = parseInt(process.env.PORT || '8080');
@@ -76,6 +80,10 @@ const connection = new Connection(RPC_URL, { commitment: SOLANA_COMMITMENT as an
 let jitoManager: JitoManager | null = null;
 let hebbianOptimizer: HebbianTipOptimizer | null = null;
 let failureAgent: FailureReasoningAgent | null = null;
+let proofChain: DecisionProofChain | null = null;
+let knowledgeGraph: TransactionKnowledgeGraph | null = null;
+let networkHealth: NetworkHealthCalculator | null = null;
+let faultInjector: FaultInjector | null = null;
 let jitoReady = false;
 
 async function initializeStack() {
@@ -88,7 +96,23 @@ async function initializeStack() {
   hebbianOptimizer = new HebbianTipOptimizer();
   console.log('[STACK] HebbianTipOptimizer initialized');
 
-  // 2. Failure Reasoning Agent (with DeepSeek if AI_API_KEY configured)
+  // 2. Proof Chain (cryptographic audit trail)
+  proofChain = new DecisionProofChain();
+  console.log('[STACK] DecisionProofChain initialized');
+
+  // 3. Knowledge Graph (pattern discovery)
+  knowledgeGraph = new TransactionKnowledgeGraph();
+  console.log('[STACK] TransactionKnowledgeGraph initialized');
+
+  // 4. Network Health Calculator
+  networkHealth = new NetworkHealthCalculator(connection);
+  console.log('[STACK] NetworkHealthCalculator initialized');
+
+  // 5. Fault Injector
+  faultInjector = new FaultInjector(connection);
+  console.log('[STACK] FaultInjector initialized (7 fault types)');
+
+  // 6. Failure Reasoning Agent (with DeepSeek if AI_API_KEY configured)
   try {
     const cfg = loadConfig();
     failureAgent = new FailureReasoningAgent(cfg);
@@ -97,7 +121,7 @@ async function initializeStack() {
     console.warn('[STACK] FailureReasoningAgent init skipped:', err.message);
   }
 
-  // 3. Jito Manager (only if keypair exists)
+  // 7. Jito Manager (only if keypair exists)
   if (AUTH_KEYPAIR_PATH) {
     const resolvedPath = path.isAbsolute(AUTH_KEYPAIR_PATH)
       ? AUTH_KEYPAIR_PATH
@@ -512,6 +536,170 @@ async function handleInsights(res: http.ServerResponse) {
 }
 
 /**
+ * GET /api/v1/proof — Export cryptographic proof chain
+ */
+async function handleProof(req: http.IncomingMessage, res: http.ServerResponse) {
+  if (!proofChain) {
+    error(res, 503, 'Proof chain not initialized');
+    return;
+  }
+  const limit = parseInt((new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`)).searchParams.get('limit') || '10');
+  success(res, {
+    proofChain: proofChain.exportForJudges(limit),
+    stats: proofChain.getStats()
+  });
+}
+
+/**
+ * GET /api/v1/proof/verify — Verify proof chain integrity
+ */
+async function handleProofVerify(res: http.ServerResponse) {
+  if (!proofChain) {
+    error(res, 503, 'Proof chain not initialized');
+    return;
+  }
+  const verification = proofChain.verifyChain();
+  success(res, {
+    verification,
+    chainLength: verification.chainLength,
+    timestamp: new Date().toISOString()
+  });
+}
+
+/**
+ * GET /api/v1/proof/report — Markdown proof chain report
+ */
+async function handleProofReport(res: http.ServerResponse) {
+  if (!proofChain) {
+    error(res, 503, 'Proof chain not initialized');
+    return;
+  }
+  res.writeHead(200, { 'Content-Type': 'text/markdown; charset=utf-8' });
+  res.end(proofChain.generateMarkdownReport());
+}
+
+/**
+ * GET /api/v1/graph — Knowledge graph export
+ */
+async function handleGraph(res: http.ServerResponse) {
+  if (!knowledgeGraph) {
+    error(res, 503, 'Knowledge graph not initialized');
+    return;
+  }
+  success(res, {
+    stats: knowledgeGraph.getStats(),
+    data: knowledgeGraph.export()
+  });
+}
+
+/**
+ * GET /api/v1/graph/insights — Pattern insights from knowledge graph
+ */
+async function handleGraphInsights(res: http.ServerResponse) {
+  if (!knowledgeGraph) {
+    error(res, 503, 'Knowledge graph not initialized');
+    return;
+  }
+  const insights = await knowledgeGraph.extractInsights();
+  success(res, {
+    insights,
+    count: insights.length
+  });
+}
+
+/**
+ * GET /api/v1/health/network — Network health score (0-100)
+ */
+async function handleNetworkHealth(res: http.ServerResponse) {
+  if (!networkHealth) {
+    error(res, 503, 'Network health calculator not initialized');
+    return;
+  }
+  const health = await networkHealth.calculateHealth();
+  const signals = await networkHealth.getSignals();
+  const aiContext = await networkHealth.getAiContext();
+  success(res, {
+    health,
+    signals,
+    aiContext
+  });
+}
+
+/**
+ * GET /api/v1/fault — Get active fault injection status
+ */
+async function handleFaultStatus(res: http.ServerResponse) {
+  if (!faultInjector) {
+    error(res, 503, 'Fault injector not initialized');
+    return;
+  }
+  const scenario = faultInjector.getCurrentScenario();
+  success(res, {
+    active: !!scenario,
+    scenario,
+    stats: faultInjector.getStats()
+  });
+}
+
+/**
+ * POST /api/v1/fault — Inject test fault
+ */
+async function handleFaultInject(req: http.IncomingMessage, res: http.ServerResponse) {
+  try {
+    if (!faultInjector) {
+      error(res, 503, 'Fault injector not initialized');
+      return;
+    }
+    const body = await parseBody(req);
+    const { type, parameters } = body;
+
+    const validTypes: FaultType[] = ['blockhash_expiry', 'fee_too_low', 'compute_exceeded', 'network_congestion', 'leader_skip', 'balance_insufficient', 'simulation_failure'];
+    if (!type || !validTypes.includes(type)) {
+      error(res, 400, `Invalid fault type. Valid: ${validTypes.join(', ')}`);
+      return;
+    }
+
+    switch (type as FaultType) {
+      case 'blockhash_expiry':
+        faultInjector.enableBlockhashExpiry(parameters?.delaySlots || 160);
+        break;
+      case 'fee_too_low':
+        faultInjector.enableFeeTooLow(parameters?.tipOverride || 0);
+        break;
+      case 'network_congestion':
+        faultInjector.enableNetworkCongestion(parameters?.delayMs || 5000);
+        break;
+      case 'leader_skip':
+        faultInjector.enableLeaderSkip();
+        break;
+      default:
+        error(res, 501, `Fault type '${type}' not yet implemented via API`);
+        return;
+    }
+
+    console.log(`[FAULT] API injected fault: ${type}`);
+    success(res, {
+      message: `Fault '${type}' injected`,
+      scenario: faultInjector.getCurrentScenario()
+    });
+  } catch (err: any) {
+    error(res, 500, 'Fault injection failed', { message: err.message });
+  }
+}
+
+/**
+ * DELETE /api/v1/fault — Clear active faults
+ */
+async function handleFaultReset(req: http.IncomingMessage, res: http.ServerResponse) {
+  if (!faultInjector) {
+    error(res, 503, 'Fault injector not initialized');
+    return;
+  }
+  faultInjector.reset();
+  success(res, { message: 'All faults cleared' });
+}
+
+/**
  * GET /api/v1/status — Agent status & capabilities
  */
 async function handleStatus(res: http.ServerResponse) {
@@ -669,6 +857,13 @@ const routes: Record<string, Record<string, (req: http.IncomingMessage, res: htt
     '/api/v1/metrics': async (req, res) => { await handleMetrics(res); },
     '/api/v1/insights': async (req, res) => { await handleInsights(res); },
     '/api/v1/brief': async (req, res) => { await handleBrief(res); },
+    '/api/v1/proof': async (req, res) => { await handleProof(req, res); },
+    '/api/v1/proof/verify': async (req, res) => { await handleProofVerify(res); },
+    '/api/v1/proof/report': async (req, res) => { await handleProofReport(res); },
+    '/api/v1/graph': async (req, res) => { await handleGraph(res); },
+    '/api/v1/graph/insights': async (req, res) => { await handleGraphInsights(res); },
+    '/api/v1/health/network': async (req, res) => { await handleNetworkHealth(res); },
+    '/api/v1/fault': async (req, res) => { await handleFaultStatus(res); },
     '/api/v1/capabilities': async (req, res) => {
       success(res, {
         agent: AGENT_NAME,
@@ -679,6 +874,15 @@ const routes: Record<string, Record<string, (req: http.IncomingMessage, res: htt
           { path: 'GET /api/v1/metrics', description: 'Performance metrics' },
           { path: 'GET /api/v1/insights', description: 'Hebbian learning insights + DeepSeek reasoning log' },
           { path: 'GET /api/v1/brief', description: 'Morning market brief' },
+          { path: 'GET /api/v1/proof', description: 'Cryptographic decision proof chain' },
+          { path: 'GET /api/v1/proof/verify', description: 'Verify proof chain integrity' },
+          { path: 'GET /api/v1/proof/report', description: 'Markdown proof chain report' },
+          { path: 'GET /api/v1/graph', description: 'Knowledge graph export' },
+          { path: 'GET /api/v1/graph/insights', description: 'Pattern insights from knowledge graph' },
+          { path: 'GET /api/v1/health/network', description: 'Network health score (0-100)' },
+          { path: 'GET /api/v1/fault', description: 'Active fault injection status' },
+          { path: 'POST /api/v1/fault', description: 'Inject test fault' },
+          { path: 'DELETE /api/v1/fault', description: 'Clear active faults' },
           { path: 'POST /api/v1/bundle', description: 'Submit Jito bundle with DeepSeek AI analysis', pricing: `${PRICE_PER_BUNDLE} USDT` },
           { path: 'POST /api/v1/analyze', description: 'Analyze for MEV opportunities with DeepSeek AI', pricing: `${PRICE_PER_ANALYSIS} USDT` },
           { path: 'POST /api/v1/learn', description: 'Feed bundle outcome for Hebbian learning' },
@@ -690,6 +894,10 @@ const routes: Record<string, Record<string, (req: http.IncomingMessage, res: htt
     '/api/v1/bundle': handleBundleSubmit,
     '/api/v1/analyze': handleAnalyze,
     '/api/v1/learn': handleLearn,
+    '/api/v1/fault': handleFaultInject,
+  },
+  DELETE: {
+    '/api/v1/fault': handleFaultReset,
   }
 };
 
@@ -744,7 +952,11 @@ const server = http.createServer(async (req, res) => {
         path,
         availableEndpoints: [
           'GET /api/v1/health', 'GET /api/v1/status', 'GET /api/v1/metrics', 'GET /api/v1/brief',
-          'POST /api/v1/bundle', 'POST /api/v1/analyze', 'POST /api/v1/learn'
+          'GET /api/v1/proof', 'GET /api/v1/proof/verify', 'GET /api/v1/proof/report',
+          'GET /api/v1/graph', 'GET /api/v1/graph/insights',
+          'GET /api/v1/health/network', 'GET /api/v1/fault',
+          'POST /api/v1/bundle', 'POST /api/v1/analyze', 'POST /api/v1/learn', 'POST /api/v1/fault',
+          'DELETE /api/v1/fault'
         ]
       });
     } else {
@@ -766,8 +978,11 @@ code{background:#f4f4f4;padding:2px 6px;border-radius:4px;font-family:'Courier N
 <li><code>GET /api/v1/metrics</code> — Performance metrics</li>
 <li><code>POST /api/v1/bundle</code> — Submit Jito bundle</li>
 <li><code>POST /api/v1/analyze</code> — MEV analysis</li>
+<li><code>GET /api/v1/proof</code> — Cryptographic proof chain</li>
+<li><code>GET /api/v1/health/network</code> — Network health score</li>
+<li><code>POST /api/v1/fault</code> — Inject test fault</li>
 </ul>
-<p>Powered by <strong>solana-tx-stack</strong> v${AGENT_VERSION} | Jito: ${jitoReady ? '✅ LIVE' : '❌ API-ONLY'}</p>
+<p>Powered by <strong>solana-tx-stack</strong> v${AGENT_VERSION} | Jito: ${jitoReady ? '✅ LIVE' : '❌ API-ONLY'} | AI: ${failureAgent ? '✅ DeepSeek' : '❌ N/A'} | Proof: ${proofChain ? '✅ SHA-256' : '❌ N/A'}</p>
 </body></html>`);
     }
 
@@ -790,20 +1005,28 @@ initializeStack().then(() => {
 ║  Jito:    ${(jitoReady ? '✅ LIVE' : '❌ API-ONLY').padEnd(37)}║
 ║  Hebbian: ${'✅ ON'.padEnd(37)}║
 ║  AI:      ${(failureAgent ? '✅ DeepSeek' : '❌ N/A').padEnd(37)}║
+║  Proof:   ${(proofChain ? '✅ SHA-256' : '❌ N/A').padEnd(37)}║
+║  Graph:   ${(knowledgeGraph ? '✅ Semantic' : '❌ N/A').padEnd(37)}║
+║  Health:  ${(networkHealth ? '✅ Monitor' : '❌ N/A').padEnd(37)}║
+║  Faults:  ${(faultInjector ? '✅ 7 types' : '❌ N/A').padEnd(37)}║
 ║  Port:    ${String(PORT).padEnd(37)}║
 ║  Agent:   ${AGENT_ID.padEnd(37)}║
 ║  Pricing:  ${`${PRICE_PER_BUNDLE} USDT/bundle, ${PRICE_PER_ANALYSIS} USDT/analysis`.padEnd(23)}║
 ╚══════════════════════════════════════════════════╝
     `);
     console.log(`📡 Endpoints:`);
-    console.log(`   Health:   /api/v1/health`);
-    console.log(`   Brief:    /api/v1/brief`);
-    console.log(`   Status:   /api/v1/status`);
-    console.log(`   Bundle:   POST /api/v1/bundle ${jitoReady ? '(LIVE)' : '(stub)'}`);
-    console.log(`   Insights: /api/v1/insights`);
+    console.log(`   Health:     /api/v1/health`);
+    console.log(`   Brief:      /api/v1/brief`);
+    console.log(`   Status:     /api/v1/status`);
+    console.log(`   Bundle:     POST /api/v1/bundle ${jitoReady ? '(LIVE)' : '(stub)'}`);
+    console.log(`   Insights:   /api/v1/insights`);
+    console.log(`   Proof:      /api/v1/proof`);
+    console.log(`   Graph:      /api/v1/graph/insights`);
+    console.log(`   Network:    /api/v1/health/network`);
+    console.log(`   Fault:      POST /api/v1/fault`);
     console.log(`\n📋 Deploy and register:`);
     console.log(`   Railway:  npx tsx src/a2mcp-server.ts`);
-    console.log(`   Register: \"Help me register an A2MCP ASP on OKX.AI\"`);
+    console.log(`   Register: "Help me register an A2MCP ASP on OKX.AI"`);
   });
 }).catch((err) => {
   console.error('[STACK] Fatal initialization error:', err);

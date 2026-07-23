@@ -1,13 +1,13 @@
 {
   "name": "solana-tx-stack",
-  "version": "1.0.0",
-  "description": "Solana Transaction Stack with Jito Bundle Support - Windows Compatible",
+  "version": "3.0.0",
+  "description": "ML-powered Jito MEV bundle submission with AI reasoning, cryptographic proof chain, Hebbian learning, knowledge graph, and network health monitoring",
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
     "dev": "tsx src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js",
+    "start": "tsx src/a2mcp-server.ts",
     "okx-agent": "node okx-agent-server.js",
     "a2mcp": "tsx src/a2mcp-server.ts",
     "a2mcp:dev": "X402_ENABLED=false tsx src/a2mcp-server.ts",
