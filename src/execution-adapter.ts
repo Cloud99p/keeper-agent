@@ -22,7 +22,7 @@ import {
 } from './keeperhub-client.js';
 import { EvmTxBuilder, EvmTxParams, SignedEvmTx, EvmWallet } from './evm-tx-builder.js';
 
-export type ChainType = 'solana' | 'ethereum' | 'base' | 'polygon' | 'arbitrum' | 'optimism';
+export type ChainType = 'solana' | 'ethereum' | 'base' | 'base-sepolia' | 'sepolia' | 'polygon' | 'arbitrum' | 'optimism';
 
 export interface ExecutionRequest {
   chain: ChainType;
@@ -91,6 +91,8 @@ export class ExecutionAdapter {
         return this.executeSolana(request);
       case 'ethereum':
       case 'base':
+      case 'base-sepolia':
+      case 'sepolia':
       case 'polygon':
       case 'arbitrum':
       case 'optimism':
@@ -265,6 +267,8 @@ export class ExecutionAdapter {
     const ids: Record<ChainType, number> = {
       ethereum: 1,
       base: 8453,
+      'base-sepolia': 84532,
+      sepolia: 11155111,
       polygon: 137,
       arbitrum: 42161,
       optimism: 10,
@@ -277,6 +281,8 @@ export class ExecutionAdapter {
     const names: Record<ChainType, string> = {
       ethereum: 'ethereum',
       base: 'base',
+      'base-sepolia': 'base-sepolia',
+      sepolia: 'sepolia',
       polygon: 'polygon',
       arbitrum: 'arbitrum',
       optimism: 'optimism',
@@ -291,6 +297,8 @@ export class ExecutionAdapter {
     const slugs: Record<ChainType, string> = {
       ethereum: 'tx-executor',
       base: 'tx-executor-base',
+      'base-sepolia': 'tx-executor-base-sepolia',
+      sepolia: 'tx-executor-sepolia',
       polygon: 'tx-executor-polygon',
       arbitrum: 'tx-executor-arbitrum',
       optimism: 'tx-executor-op',

@@ -317,7 +317,7 @@ async function handleBundleSubmit(req: http.IncomingMessage, res: http.ServerRes
 
     // Detect chain — default to solana for backward compatibility
     const chain = (rawChain || 'solana').toLowerCase();
-    const isEvm = ['ethereum', 'base', 'polygon', 'arbitrum', 'optimism'].includes(chain);
+    const isEvm = ['ethereum', 'base', 'base-sepolia', 'sepolia', 'polygon', 'arbitrum', 'optimism'].includes(chain);
 
     console.log(`[BUNDLE] ${chain} | ${transactions?.length || 1} tx(s) received`);
 
@@ -597,7 +597,7 @@ async function handleBundleSubmit(req: http.IncomingMessage, res: http.ServerRes
   } // end EVM path
 
   // unsupported chain
-  error(res, 400, `Unsupported chain: ${chain}. Supported: solana, ethereum, base, polygon, arbitrum, optimism`);
+  error(res, 400, `Unsupported chain: ${chain}. Supported: solana, ethereum, base, base-sepolia, sepolia, polygon, arbitrum, optimism`);
   } catch (err: any) {
     console.error('[BUNDLE] Error:', err);
     error(res, 500, 'Bundle processing failed', { message: err.message });
