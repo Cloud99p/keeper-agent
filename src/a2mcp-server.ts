@@ -317,7 +317,9 @@ async function handleBundleSubmit(req: http.IncomingMessage, res: http.ServerRes
     if (!payment.paid) { x402PaymentRequired(res, PRICE_PER_BUNDLE); return; }
 
     const body = await parseBody(req);
-    const { transactions, chain: rawChain, tipLamports, priority, webhookUrl, evmTx, idempotencyKey } = body;
+    const { transactions, chain: rawChain, tipLamports, priority, webhookUrl, evmTx: rawEvmTx, idempotencyKey } = body;
+    // Accept top-level to/value/data or nested evmTx object
+    const evmTx = rawEvmTx || (body.to ? { to: body.to, value: body.value, data: body.data } : undefined);
 
     // Detect chain — default to solana for backward compatibility
     const chain = (rawChain || 'solana').toLowerCase();
