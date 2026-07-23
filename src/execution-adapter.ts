@@ -62,13 +62,13 @@ export interface ExecutionAdapterConfig {
  * Routes execution to the appropriate path based on chain type.
  */
 export class ExecutionAdapter {
-  private jitoManager: JitoManager;
+  private jitoManager: JitoManager | null;
   private keeperhubClient: KeeperHubClient;
   private evmBuilder: EvmTxBuilder | null = null;
   private config: ExecutionAdapterConfig;
 
   constructor(
-    jitoManager: JitoManager,
+    jitoManager: JitoManager | null,
     keeperhubClient: KeeperHubClient,
     config: ExecutionAdapterConfig
   ) {
@@ -122,6 +122,16 @@ export class ExecutionAdapter {
 
     const tip = request.tipAmount || 1000;
     const payer = request.payer || (request.transactions[0] as any).message?.staticAccountKeys?.[0] || new PublicKey('11111111111111111111111111111111');
+
+    if (!this.jitoManager) {
+      return {
+        success: false,
+        chain: 'solana',
+        tip,
+        retries: 0,
+        error: 'JitoManager not initialized',
+      };
+    }
 
     try {
       const result = await this.jitoManager.submitBundle(

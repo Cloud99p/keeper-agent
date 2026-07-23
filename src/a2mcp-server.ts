@@ -355,8 +355,8 @@ async function handleBundleSubmit(req: http.IncomingMessage, res: http.ServerRes
             const bh = await connection.getLatestBlockhash('finalized');
             const msg = legacyTx.compileMessage();
             const v0Msg = TransactionMessage.decompile(msg);
-            const versioned = new VersionedTransaction(v0Msg.compileToV0Message());
-            versioned.addSignature(legacyTx.signature!);
+            const signatures = legacyTx.signatures.map(s => s.signature || new Uint8Array(64));
+            const versioned = new VersionedTransaction(v0Msg.compileToV0Message(), signatures);
             decodedTxs.push(versioned);
           } catch (e2: any) {
             deserializeErrors.push(`tx[${i}]: ${e1.message} / fallback: ${e2.message}`);

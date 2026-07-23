@@ -123,8 +123,8 @@ export class EvmTxBuilder {
       } else {
         // Legacy: use gasPrice
         if (!filled.maxFeePerGas) {
-          const { gasPrice } = await this.rpcCall('eth_gasPrice', []);
-          tx.gasPrice = gasPrice;
+          const { result } = await this.rpcCall('eth_gasPrice', []);
+          tx.gasPrice = result;
         } else {
           tx.gasPrice = filled.maxFeePerGas;
         }
