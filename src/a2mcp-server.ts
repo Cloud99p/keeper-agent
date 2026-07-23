@@ -35,6 +35,8 @@ import { DecisionProofChain } from './proof-chain.js';
 import { TransactionKnowledgeGraph } from './knowledge-graph.js';
 import { NetworkHealthCalculator } from './network-health.js';
 import { FaultInjector, FaultType } from './fault-injector.js';
+import { getTipOracle, getMarketContext } from './tip-oracle.js';
+import { getWebhookManager } from './webhooks.js';
 
 // ===== Configuration =====
 const PORT = parseInt(process.env.PORT || '8080');
@@ -156,6 +158,19 @@ let bundleSuccessCount = 0;
 let bundleFailCount = 0;
 const recentRequests: Array<{ timestamp: number; method: string; url: string; status: number }> = [];
 
+// Revenue tracking
+let totalRevenueUsdt = 0;
+let todayRevenueUsdt = 0;
+let lastRevenueResetDay = new Date().getDate();
+
+// Auto-retry config
+const MAX_RETRIES = 3;
+const RETRY_TIP_MULTIPLIERS = [1.15, 1.25, 1.40];
+
+// Tip Oracle & Webhook Manager singletons
+const tipOracle = getTipOracle();
+const webhookManager = getWebhookManager();
+
 // ===== Helpers =====
 
 function jsonResponse(res: http.ServerResponse, status: number, data: any) {
@@ -251,7 +266,7 @@ async function handleBundleSubmit(req: http.IncomingMessage, res: http.ServerRes
     if (!payment.paid) { x402PaymentRequired(res, PRICE_PER_BUNDLE); return; }
 
     const body = await parseBody(req);
-    const { transactions, tipLamports } = body;
+    const { transactions, tipLamports, priority, webhookUrl } = body;
 
     if (!transactions || !Array.isArray(transactions) || transactions.length === 0) {
       error(res, 400, 'Missing or invalid transactions array');
@@ -260,188 +275,182 @@ async function handleBundleSubmit(req: http.IncomingMessage, res: http.ServerRes
 
     console.log(`[BUNDLE] ${transactions.length} tx(s) received`);
 
-    // Get network conditions
     const slot = await connection.getSlot();
-    const minTip = Math.max(tipLamports || parseInt(process.env.MIN_TIP_LAMPORTS || '1000'), 1000);
-
-    // Build response with network context
     const result: any = {
       slot,
       transactionCount: transactions.length,
-      jitoReady
+      jitoReady,
+      retries: [] as any[],
     };
 
+    const tipRec = await tipOracle.getRecommendedTip(priority || 'medium');
+    const initialTip = Math.max(tipLamports || tipRec.lamports, 1000);
+    const marketContext = await tipOracle.getMarketContext();
+    result.marketTipFloor = marketContext;
+
     if (jitoReady && jitoManager) {
-      // REAL Jito submission
-      try {
-        // Deserialize transactions with fallback for malformed/large payloads
-        const decodedTxs: VersionedTransaction[] = [];
-        const deserializeErrors: string[] = [];
-        for (let i = 0; i < transactions.length; i++) {
+      const decodedTxs: VersionedTransaction[] = [];
+      const deserializeErrors: string[] = [];
+      for (let i = 0; i < transactions.length; i++) {
+        try {
+          const buf = Buffer.from(transactions[i], 'base64');
+          decodedTxs.push(VersionedTransaction.deserialize(buf));
+        } catch (e1: any) {
           try {
-            const buf = Buffer.from(transactions[i], 'base64');
-            // Skip byte-order checks — try V0 deserialize, fallback to legacy Transaction
-            decodedTxs.push(VersionedTransaction.deserialize(buf));
-          } catch (e1: any) {
-            try {
-              // Fallback: try legacy Transaction, then re-serialize as Versioned
-              const legacyTx = Transaction.from(Buffer.from(transactions[i], 'base64'));
-              const bh = await connection.getLatestBlockhash('finalized');
-              const msg = legacyTx.compileMessage();
-              const v0Msg = TransactionMessage.decompile(msg);
-              const versioned = new VersionedTransaction(v0Msg.compileToV0Message());
-              versioned.addSignature(legacyTx.signature!);
-              decodedTxs.push(versioned);
-            } catch (e2: any) {
-              deserializeErrors.push(`tx[${i}]: ${e1.message} / fallback: ${e2.message}`);
+            const legacyTx = Transaction.from(Buffer.from(transactions[i], 'base64'));
+            const bh = await connection.getLatestBlockhash('finalized');
+            const msg = legacyTx.compileMessage();
+            const v0Msg = TransactionMessage.decompile(msg);
+            const versioned = new VersionedTransaction(v0Msg.compileToV0Message());
+            versioned.addSignature(legacyTx.signature!);
+            decodedTxs.push(versioned);
+          } catch (e2: any) {
+            deserializeErrors.push(`tx[${i}]: ${e1.message} / fallback: ${e2.message}`);
+          }
+        }
+      }
+      if (decodedTxs.length === 0) {
+        throw new Error(`Failed to deserialize any transactions: ${deserializeErrors.join('; ')}`);
+      }
+      if (deserializeErrors.length > 0) {
+        console.warn('[BUNDLE] Partial deserialization:', deserializeErrors.join(' | '));
+      }
+
+      const resolvedPath = path.isAbsolute(AUTH_KEYPAIR_PATH)
+        ? AUTH_KEYPAIR_PATH
+        : path.resolve(process.cwd(), AUTH_KEYPAIR_PATH);
+      const keypairData = fs.readFileSync(resolvedPath, 'utf-8');
+      const payer = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(keypairData)));
+
+      // === AUTO-RETRY LOOP (max 3 retries with escalating tips) ===
+      let currentTip = initialTip;
+      let overallSuccess = false;
+      let finalBundleId: string | null = null;
+      let healthScore: number | undefined;
+      let grpcError: string | undefined;
+
+      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        console.log(`[RETRY] Attempt ${attempt + 1}/${MAX_RETRIES + 1} tip: ${currentTip} lamports`);
+
+        try {
+          const submitResult = await jitoManager.submitBundle(decodedTxs, payer.publicKey, currentTip);
+          overallSuccess = true;
+          finalBundleId = submitResult.bundleId;
+          healthScore = submitResult.healthScore;
+          grpcError = submitResult.grpcError;
+
+          if (hebbianOptimizer) {
+            await hebbianOptimizer.learn({ tipLamports: currentTip, status: "submitted", healthScore: healthScore || 70, skipRate: 0.15, leaderQuality: 0.8 });
+          }
+          result.retries.push({ attempt: attempt + 1, status: "success", tip: currentTip, bundleId: submitResult.bundleId });
+          break;
+        } catch (err: any) {
+          console.warn(`[RETRY] Attempt ${attempt + 1} failed: ${err.message}`);
+          const isStructural = err.message.includes('deserialize') || err.message.includes('buffer') || err.message.includes('signature');
+          result.retries.push({ attempt: attempt + 1, status: "failed", tip: currentTip, error: err.message });
+
+          if (isStructural) {
+            result.message = 'Structural error aborting';
+            result.error = err.message;
+            break;
+          }
+
+          if (hebbianOptimizer) {
+            await hebbianOptimizer.learn({ tipLamports: currentTip, status: "failed", healthScore: 50, skipRate: 0.15, leaderQuality: 0.5 });
+          }
+
+          if (attempt < MAX_RETRIES) {
+            currentTip = Math.round(currentTip * RETRY_TIP_MULTIPLIERS[attempt]);
+
+            if (attempt === 0 && failureAgent) {
+              try {
+                const failureType: FailureType = err.message.includes('blockhash') || err.message.includes('expire') ? 'expired_blockhash'
+                  : err.message.includes('fee') || err.message.includes('tip') ? 'fee_too_low'
+                    : err.message.includes('timeout') ? 'timeout'
+                      : err.message.includes('compute') ? 'compute_exceeded' : 'bundle_rejected';
+
+                const fc: FailureContext = {
+                  failureType, failureStage: "submitted", submissionSlot: slot, submissionTimestamp: Date.now(),
+                  blockhashSlot: slot, blockhashAge: 0,
+                  slotConditions: { skipRate: 0.15, congestionLevel: 0.3, leaderQuality: 0.75 },
+                  recentTips: [marketContext.tipFloorLamports], submissionLatency: 0,
+                };
+
+                const retryParams: RetryParameters = await failureAgent.analyzeFailure(fc);
+                result.deepseek = {
+                  enabled: true, confidence: retryParams.reasoning.confidence, action: retryParams.reasoning.decision.action,
+                  reasoning: retryParams.reasoning.decision.reasoning_summary,
+                  retryParameters: { shouldRetry: retryParams.shouldRetry, tipAdjustmentPercent: retryParams.tipAdjustment, delayMs: retryParams.delayMs, refreshBlockhash: retryParams.refreshBlockhash },
+                };
+
+                if (retryParams.shouldRetry && retryParams.tipAdjustment > 0) {
+                  currentTip = Math.round(currentTip * (1 + retryParams.tipAdjustment / 100));
+                }
+              } catch (e: any) {
+                console.warn('[AGENT] Failure analysis skipped:', e.message);
+              }
             }
+
+            await new Promise(r => setTimeout(r, 250 * Math.pow(2, attempt)));
           }
         }
-        if (decodedTxs.length === 0) {
-          throw new Error(`Failed to deserialize any transactions: ${deserializeErrors.join('; ')}`);
-        }
-        if (deserializeErrors.length > 0) {
-          console.warn('[BUNDLE] Partial deserialization:', deserializeErrors.join(' | '));
-        }
+      }
 
-        // Get the payer keypair
-        const resolvedPath = path.isAbsolute(AUTH_KEYPAIR_PATH)
-          ? AUTH_KEYPAIR_PATH
-          : path.resolve(process.cwd(), AUTH_KEYPAIR_PATH);
-        const keypairData = fs.readFileSync(resolvedPath, 'utf-8');
-        const payer = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(keypairData)));
-
-        // Submit the bundle
-        const submitResult = await jitoManager.submitBundle(decodedTxs, payer.publicKey, minTip);
-
-        bundleCount++;
+      bundleCount++;
+      if (overallSuccess) {
         bundleSuccessCount++;
-
-        // Hebbian learning: record success
-        if (hebbianOptimizer && submitResult.healthScore) {
-          await hebbianOptimizer.learn({
-            tipLamports: minTip,
-            status: 'submitted',
-            healthScore: submitResult.healthScore,
-            skipRate: 0.15,
-            leaderQuality: 0.8
-          });
-        }
-
-        // Get Hebbian tip recommendation for next time
-        const recommendation = hebbianOptimizer?.recommendTip
-          ? await hebbianOptimizer.recommendTip({ healthScore: submitResult.healthScore || 70, skipRate: 0.15, leaderQuality: 0.8 })
-          : null;
-
-        // DeepSeek reasoning: analyze network conditions for successful submission
-        if (failureAgent) {
-          try {
-            const fc: FailureContext = {
-              failureType: 'submitted',
-              failureStage: 'submitted',
-              submissionSlot: slot,
-              submissionTimestamp: Date.now(),
-              blockhashSlot: slot,
-              blockhashAge: 0,
-              slotConditions: { skipRate: 0.15, congestionLevel: 0.3, leaderQuality: 0.75 },
-              recentTips: [],
-              submissionLatency: 0,
-            };
-            const retryParams: RetryParameters = await failureAgent.analyzeFailure(fc);
-            result.deepseekAnalysis = retryParams.reasoning;
-            result.deepseek = {
-              enabled: true,
-              confidence: retryParams.reasoning.confidence,
-              action: retryParams.reasoning.decision.action,
-              reasoning: retryParams.reasoning.decision.reasoning_summary,
-            };
-          } catch (e: any) {
-            console.warn('[AGENT] DeepSeek analysis skipped:', e.message);
-          }
-        }
-
-        result.bundleId = submitResult.bundleId;
-        result.networkHealth = submitResult.healthScore;
-        result.recommendedTip = recommendation?.recommendedTip || minTip;
-        result.confidence = recommendation?.confidence || null;
-        result.grpcError = submitResult.grpcError || null;
-        result.message = submitResult.grpcError ? `Bundle submitted via RPC (gRPC: ${submitResult.grpcError})` : 'Bundle submitted to Jito';
-
-      } catch (err: any) {
+        totalRevenueUsdt += PRICE_PER_BUNDLE;
+        const today = new Date().getDate();
+        if (today !== lastRevenueResetDay) { todayRevenueUsdt = 0; lastRevenueResetDay = today; }
+        todayRevenueUsdt += PRICE_PER_BUNDLE;
+      } else {
         bundleFailCount++;
-        console.error('[BUNDLE] Jito submission failed:', err.message);
+      }
 
-        // Hebbian learning: record failure
-        if (hebbianOptimizer) {
-          await hebbianOptimizer.learn({
-            tipLamports: minTip,
-            status: 'failed',
-            healthScore: 50,
-            skipRate: 0.15,
-            leaderQuality: 0.5
-          });
-        }
+      const recommendation = hebbianOptimizer?.recommendTip
+        ? await hebbianOptimizer.recommendTip({ healthScore: healthScore || 70, skipRate: 0.15, leaderQuality: 0.8 })
+        : null;
 
-        // DeepSeek reasoning: analyze the failure for retry recommendation
-        if (failureAgent) {
-          try {
-            const failureType: FailureType = err.message.includes('blockhash') || err.message.includes('expire')
-              ? 'expired_blockhash'
-              : err.message.includes('fee') || err.message.includes('tip')
-                ? 'fee_too_low'
-                : err.message.includes('timeout')
-                  ? 'timeout'
-                  : err.message.includes('compute')
-                    ? 'compute_exceeded'
-                    : 'bundle_rejected';
+      result.bundleId = finalBundleId || ("bundle_" + Date.now());
+      result.networkHealth = healthScore || null;
+      result.recommendedTip = recommendation?.recommendedTip || currentTip;
+      result.confidence = recommendation?.confidence || null;
+      result.grpcError = grpcError || null;
+      result.message = overallSuccess
+        ? (grpcError ? ("Bundle submitted via RPC (gRPC: " + grpcError + ")") : "Bundle submitted to Jito")
+        : "Bundle submission failed after retries";
+      result.totalRetries = result.retries.length - 1;
+      result.overallStatus = overallSuccess ? "submitted" : "failed";
 
-            const fc: FailureContext = {
-              failureType,
-              failureStage: 'submitted',
-              submissionSlot: slot,
-              submissionTimestamp: Date.now(),
-              blockhashSlot: slot,
-              blockhashAge: 0,
-              slotConditions: { skipRate: 0.15, congestionLevel: 0.3, leaderQuality: 0.75 },
-              recentTips: [],
-              submissionLatency: 0,
-            };
-            const retryParams: RetryParameters = await failureAgent.analyzeFailure(fc);
-            result.deepseek = {
-              enabled: true,
-              confidence: retryParams.reasoning.confidence,
-              action: retryParams.reasoning.decision.action,
-              reasoning: retryParams.reasoning.decision.reasoning_summary,
-              retryParameters: {
-                shouldRetry: retryParams.shouldRetry,
-                tipAdjustmentPercent: retryParams.tipAdjustment,
-                delayMs: retryParams.delayMs,
-                refreshBlockhash: retryParams.refreshBlockhash,
-              },
-            };
-          } catch (e: any) {
-            console.warn('[AGENT] Failure analysis skipped:', e.message);
-          }
-        }
+      if (webhookUrl) {
+        webhookManager.fire(result.bundleId, { status: overallSuccess ? "submitted" : "failed", slot, bundleId: result.bundleId, error: result.error || null, retries: result.totalRetries, pricing: { charged: payment.amount || PRICE_PER_BUNDLE, unit: "USDT" } });
+      }
 
-        result.message = 'Bundle prepared but Jito submission failed';
-        result.error = err.message;
-        result.pendingRetry = true;
+      if (proofChain) {
+        proofChain.recordDecision(
+          { bundleId: result.bundleId || ("bundle_" + Date.now()), failureType: overallSuccess ? 'submitted' : 'bundle_rejected', stage: 'submitted', submissionSlot: slot, blockhashAge: 0, slotConditions: { skipRate: 0.15, congestionLevel: 0.3, leaderQuality: 0.75 }, recentTips: [marketContext.tipFloorLamports], submissionLatency: 0 },
+          { action: overallSuccess ? 'retry' : 'abort', tip_adjustment_percent: 0, blockhash_refresh: false, delay_ms: 0, reasoning_summary: overallSuccess ? 'Bundle submitted successfully after retries' : 'Bundle failed after retries' },
+          { tipSource: tipRec.source, retries: result.totalRetries, txs: transactions.length }
+        );
       }
     } else {
-      // API-only mode: return bundle preparation
       bundleCount++;
-      result.message = 'Bundle prepared (Jito not connected — run with keypair to submit live)';
-      result.recommendedTip = minTip;
+      result.message = 'Bundle prepared (Jito not connected run with keypair to submit live)';
+      result.recommendedTip = initialTip;
       result.networkHealth = 'N/A (no connection)';
     }
 
     success(res, {
-      bundleId: result.bundleId || `bundle_${Date.now()}`,
+      bundleId: result.bundleId || ("bundle_" + Date.now()),
       details: result,
-      pricing: { charged: payment.amount || PRICE_PER_BUNDLE, unit: 'USDT' }
+      pricing: { charged: payment.amount || PRICE_PER_BUNDLE, unit: "USDT" },
     });
 
+    if (webhookUrl && !jitoReady) {
+      webhookManager.fire(result.bundleId || ("bundle_" + Date.now()), {
+        status: "prepared", slot, error: "Jito not connected", pricing: { charged: payment.amount || PRICE_PER_BUNDLE, unit: "USDT" }
+      });
+    }
   } catch (err: any) {
     console.error('[BUNDLE] Error:', err);
     error(res, 500, 'Bundle processing failed', { message: err.message });
@@ -803,6 +812,74 @@ async function handleMetrics(res: http.ServerResponse) {
 let briefCache: { data: BriefData; timestamp: number } | null = null;
 const BRIEF_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
+
+/**
+ * GET /api/v1/stats — Comprehensive agent statistics dashboard
+ */
+async function handleStats(res: http.ServerResponse) {
+  const oneHourAgo = Date.now() - 3600000;
+  const oneDayAgo = Date.now() - 86400000;
+  const hourlyRequests = recentRequests.filter(r => r.timestamp > oneHourAgo);
+  const dailyRequests = recentRequests.filter(r => r.timestamp > oneDayAgo);
+
+  const proofStats: any = proofChain?.getStats() || { chainLength: 0, integrityVerified: true };
+  let hebbianPatterns = 0;
+  let hebbianSuccessRate: number | null = null;
+  if (hebbianOptimizer && typeof hebbianOptimizer.getInsights === "function") {
+    try {
+      const insights = await hebbianOptimizer.getInsights();
+      hebbianPatterns = insights.length;
+      if (insights.length > 0) {
+        const rates = insights.filter((i: any) => i.successRate !== undefined).map((i: any) => i.successRate);
+        hebbianSuccessRate = rates.length > 0 ? rates.reduce((a: number, b: number) => a + b, 0) / rates.length : null;
+      }
+    } catch {}
+  }
+
+  const webhookStats = webhookManager.getStats();
+
+  let avgTip = 0;
+  if (hebbianOptimizer && typeof hebbianOptimizer.getInsights === "function") {
+    try {
+      const insights = await hebbianOptimizer.getInsights();
+      const tips = insights.filter((i: any) => i.tipLamports).map((i: any) => i.tipLamports);
+      if (tips.length > 0) avgTip = Math.round(tips.reduce((a: number, b: number) => a + b, 0) / tips.length);
+    } catch {}
+  }
+
+  let networkScore = 0;
+  if (networkHealth) {
+    try { networkScore = (await networkHealth.calculateHealth()).score; } catch {}
+  }
+
+  success(res, {
+    agent: { id: AGENT_ID, name: AGENT_NAME, version: AGENT_VERSION },
+    time: { uptime: formatUptime(Math.floor((Date.now() - serverStartTime) / 1000)), started: new Date(serverStartTime).toISOString() },
+    bundles: { total: bundleCount, successful: bundleSuccessCount, failed: bundleFailCount,
+      successRate: bundleCount > 0 ? Math.round((bundleSuccessCount / bundleCount) * 100) : null,
+      averageTipLamports: avgTip },
+    revenue: { totalUsdt: totalRevenueUsdt, todayUsdt: todayRevenueUsdt },
+    requests: { total: requestCount, lastHour: hourlyRequests.length, last24h: dailyRequests.length, errors: errorCount },
+    proofChain: { chainLength: proofStats.chainLength || 0, integrityVerified: proofStats.integrityVerified !== false,
+      status: proofStats.chainLength > 0 ? 'active' : 'empty' },
+    hebbian: { enabled: !!hebbianOptimizer, patternsLearned: hebbianPatterns, avgSuccessRate: hebbianSuccessRate },
+    webhooks: webhookStats,
+    network: { available: !!networkHealth, lastScore: networkScore },
+    stack: {
+      jito: jitoManager?.hasGrpc() ? 'grpc' : (jitoReady ? 'rpc' : 'disconnected'),
+      hebbian: !!hebbianOptimizer, proofChain: !!proofChain, knowledgeGraph: !!knowledgeGraph,
+      faultInjector: !!faultInjector, deepseek: !!failureAgent,
+      tipOracle: true, webhooks: true, autoRetry: true },
+  });
+}
+
+/**
+ * GET /api/v1/webhooks — List pending webhook callbacks
+ */
+function handleWebhooks(res: http.ServerResponse) {
+  const pending = webhookManager.getPending();
+  success(res, { total: pending.length, webhooks: pending.slice(-20).reverse() });
+}
 async function handleBrief(res: http.ServerResponse) {
   try {
     // Return cached brief if fresh
@@ -864,6 +941,8 @@ const routes: Record<string, Record<string, (req: http.IncomingMessage, res: htt
     '/api/v1/graph/insights': async (req, res) => { await handleGraphInsights(res); },
     '/api/v1/health/network': async (req, res) => { await handleNetworkHealth(res); },
     '/api/v1/fault': async (req, res) => { await handleFaultStatus(res); },
+    '/api/v1/stats': async (req, res) => { await handleStats(res); },
+    '/api/v1/webhooks': async (req, res) => { handleWebhooks(res); },
     '/api/v1/capabilities': async (req, res) => {
       success(res, {
         agent: AGENT_NAME,
@@ -954,7 +1033,7 @@ const server = http.createServer(async (req, res) => {
           'GET /api/v1/health', 'GET /api/v1/status', 'GET /api/v1/metrics', 'GET /api/v1/brief',
           'GET /api/v1/proof', 'GET /api/v1/proof/verify', 'GET /api/v1/proof/report',
           'GET /api/v1/graph', 'GET /api/v1/graph/insights',
-          'GET /api/v1/health/network', 'GET /api/v1/fault',
+          'GET /api/v1/health/network', 'GET /api/v1/stats', 'GET /api/v1/webhooks', 'GET /api/v1/fault',
           'POST /api/v1/bundle', 'POST /api/v1/analyze', 'POST /api/v1/learn', 'POST /api/v1/fault',
           'DELETE /api/v1/fault'
         ]

@@ -16,7 +16,7 @@
 // Load environment variables FIRST
 import 'dotenv/config';
 
-import { Connection, Keypair, SystemProgram, Transaction, LAMPORTS_PER_SOL, PublicKey, ComputeBudgetProgram } from '@solana/web3.js';
+import { Connection, Keypair, SystemProgram, Transaction, LAMPORTS_PER_SOL, PublicKey, ComputeBudgetProgram, sendAndConfirmTransaction } from '@solana/web3.js';
 import fs from 'fs';
 import path from 'path';
 import { DeepSeekClient } from '../src/deepseek-client.js';
@@ -132,39 +132,26 @@ async function main() {
         })
       );
 
-      const signature = await connection.sendTransaction(tx, [keypair], {
+      const signature = await sendAndConfirmTransaction(connection, tx, [keypair], {
         skipPreflight: true,
-        maxRetries: 3,
+        commitment: 'confirmed',
       });
 
-      console.log(`✅ Sent: ${signature}`);
+      console.log(`✅ Confirmed: ${signature}`);
       console.log(`   Slot: ${slot}, Tip: ${CONFIG.tipLamports} lamports`);
 
       bundles.push({
         bundleId: signature,
         type: 'normal',
-        stage: 'submitted',
+        stage: 'confirmed',
         submittedSlot: slot,
-        submittedAt: Date.now(),
+        confirmedAt: Date.now(),
         tipLamports: CONFIG.tipLamports,
-        status: 'submitted',
+        status: 'confirmed',
         network: 'mainnet-beta',
         testPhase: 'normal',
       });
 
-      // Removed mid-test save (append at end only)
-
-      // Wait for confirmation
-      await new Promise(r => setTimeout(r, 5000));
-      
-      // Update to confirmed
-      const lastBundle = bundles[bundles.length - 1];
-      lastBundle.stage = 'confirmed';
-      lastBundle.confirmedAt = Date.now();
-      lastBundle.status = 'confirmed';
-      // Removed mid-test save (append at end only)
-
-      console.log(`   ✅ Confirmed`);
       console.log();
 
       if (bundleIndex < CONFIG.totalBundles) {
