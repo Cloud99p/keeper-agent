@@ -377,6 +377,116 @@ export class KeeperHubClient {
       req.on('error', reject);
     });
   }
+
+  // ──────────────────────────────────────────────
+  // MCP Protocol Client
+  // Uses JSON-RPC over HTTPS with session management
+  // ──────────────────────────────────────────────
+
+  /**
+   * Make a JSON-RPC request to the KeeperHub MCP server.
+   * Handles session initialization automatically.
+   */
+  private async mcpRequest(body: any, sessionId?: string): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const payload = JSON.stringify(body);
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.config.apiKey}`,
+        'Content-Length': String(Buffer.byteLength(payload)),
+      };
+      if (sessionId) headers['Mcp-Session-Id'] = sessionId;
+      const opts = {
+        hostname: new URL(this.baseUrl).hostname,
+        path: '/mcp',
+        method: 'POST',
+        headers,
+      };
+      const req = https.request(opts, (res) => {
+        let d = '';
+        res.on('data', (c) => (d += c));
+        res.on('end', () => {
+          try {
+            resolve({ status: res.statusCode, headers: res.headers, data: JSON.parse(d) });
+          } catch {
+            resolve({ status: res.statusCode, headers: res.headers, data: d });
+          }
+        });
+      });
+      req.setTimeout(10000, () => { req.destroy(); reject(new Error('MCP request timed out')); });
+      req.on('error', reject);
+      req.write(payload);
+      req.end();
+    });
+  }
+
+  /**
+   * Initialize an MCP session and return the session ID.
+   */
+  async mcpInitSession(): Promise<string> {
+    const init = await this.mcpRequest({ jsonrpc: '2.0', method: 'initialize', params: { protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 'keeper-agent', version: '1.0.0' } }, id: 1 });
+    if (init.status !== 200) throw new Error(`MCP init failed: ${init.status}`);
+    const sessionId = (init.headers?.['mcp-session-id'] || init.headers?.['Mcp-Session-Id']) as string;
+    if (!sessionId) throw new Error('No MCP session ID returned');
+    // Send initialized notification WITH session ID
+    await this.mcpRequest({ jsonrpc: '2.0', method: 'notifications/initialized', params: {} }, sessionId);
+    return sessionId;
+  }
+
+  /**
+   * Execute a transfer via KeeperHub's execute_transfer MCP tool.
+   * Returns the execution ID for status polling.
+   */
+  async mcpExecuteTransfer(params: {
+    chainId: string;
+    toAddress: string;
+    amount: string;
+    tokenAddress?: string;
+  }): Promise<{ executionId: string; status: string }> {
+    const sessionId = await this.mcpInitSession();
+    const result = await this.mcpRequest({
+      jsonrpc: '2.0', method: 'tools/call',
+      params: {
+        name: 'execute_transfer',
+        arguments: {
+          chain_id: params.chainId,
+          to_address: params.toAddress,
+          amount: params.amount,
+          ...(params.tokenAddress ? { token_address: params.tokenAddress } : {}),
+        },
+      },
+      id: Date.now(),
+    }, sessionId);
+    const text = result?.data?.result?.content?.[0]?.text;
+    if (!text) throw new Error('No execute_transfer result');
+    return JSON.parse(text);
+  }
+
+  /**
+   * Get the status of a previously submitted transfer.
+   */
+  async mcpGetTransactionStatus(executionId: string): Promise<{
+    executionId: string;
+    status: string;
+    transactionHash?: string;
+    transactionLink?: string;
+    error: string | null;
+    sponsored?: boolean;
+    result?: any;
+  }> {
+    const sessionId = await this.mcpInitSession();
+    const result = await this.mcpRequest({
+      jsonrpc: '2.0', method: 'tools/call',
+      params: {
+        name: 'get_direct_execution_status',
+        arguments: { execution_id: executionId },
+      },
+      id: Date.now(),
+    }, sessionId);
+    const text = result?.data?.result?.content?.[0]?.text;
+    if (!text) throw new Error('No status result');
+    return JSON.parse(text);
+  }
 }
 
 // Singleton

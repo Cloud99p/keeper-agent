@@ -588,6 +588,9 @@ async function handleBundleSubmit(req: http.IncomingMessage, res: http.ServerRes
         details: {
           chain,
           txHash: execResult.txHash,
+          txLink: execResult.txLink,
+          sponsored: execResult.sponsored,
+          keeperhubExecutionId: execResult.keeperhubExecutionId,
           status: execResult.success ? 'submitted' : 'failed',
           keeperhub: execResult.keeperhubResult || undefined,
           proofHash: execResult.proofHash,
