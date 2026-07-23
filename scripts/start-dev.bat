@@ -29,6 +29,7 @@ if exist .env (
 if "%PORT%"=="" set PORT=9090
 if "%ETH_RPC_URL%"=="" set ETH_RPC_URL=https://ethereum-sepolia-rpc.publicnode.com
 set DEBUG=true
+set X402_ENABLED=false
 
 echo Starting server on port %PORT%...
 echo Chain:   Sepolia (testnet)

@@ -41,6 +41,7 @@ export PORT="${PORT:-9090}"
 export ETH_RPC_URL="${ETH_RPC_URL:-https://ethereum-sepolia-rpc.publicnode.com}"
 export KEEPERHUB_API_KEY="${KEEPERHUB_API_KEY:-}"
 export DEBUG="${DEBUG:-true}"
+export X402_ENABLED=false
 
 # Validate
 if [ -z "$KEEPERHUB_API_KEY" ]; then

@@ -48,7 +48,11 @@ const SOLANA_COMMITMENT = process.env.SOLANA_COMMITMENT || 'confirmed';
 const AGENT_ID = process.env.AGENT_ID || '3325';
 const AGENT_NAME = process.env.AGENT_NAME || 'Keeper Agent';
 const AGENT_VERSION = process.env.AGENT_VERSION || '2.0.0-a2mcp';
-const X402_ENABLED = process.env.X402_ENABLED === 'true' || process.env.KEEPERHUB_API_KEY ? true : false;
+const X402_ENABLED = process.env.X402_ENABLED === 'true'
+  ? true
+  : process.env.X402_ENABLED === 'false'
+    ? false
+    : !!process.env.KEEPERHUB_API_KEY;
 const X402_WALLET = process.env.X402_WALLET || '';
 const KEEPERHUB_API_KEY = process.env.KEEPERHUB_API_KEY || '';
 const ETH_RPC_URL = process.env.ETH_RPC_URL || process.env.BASE_RPC_URL || '';
