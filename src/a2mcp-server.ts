@@ -37,6 +37,9 @@ import { NetworkHealthCalculator } from './network-health.js';
 import { FaultInjector, FaultType } from './fault-injector.js';
 import { getTipOracle, getMarketContext } from './tip-oracle.js';
 import { getWebhookManager } from './webhooks.js';
+import { KeeperHubClient, getKeeperHubClient } from './keeperhub-client.js';
+import { ExecutionAdapter } from './execution-adapter.js';
+import { EvmTxBuilder } from './evm-tx-builder.js';
 
 // ===== Configuration =====
 const PORT = parseInt(process.env.PORT || '8080');
@@ -45,8 +48,12 @@ const SOLANA_COMMITMENT = process.env.SOLANA_COMMITMENT || 'confirmed';
 const AGENT_ID = process.env.AGENT_ID || '3325';
 const AGENT_NAME = process.env.AGENT_NAME || 'Keeper Agent';
 const AGENT_VERSION = process.env.AGENT_VERSION || '2.0.0-a2mcp';
-const X402_ENABLED = process.env.X402_ENABLED === 'true';
+const X402_ENABLED = process.env.X402_ENABLED === 'true' || process.env.KEEPERHUB_API_KEY ? true : false;
 const X402_WALLET = process.env.X402_WALLET || '';
+const KEEPERHUB_API_KEY = process.env.KEEPERHUB_API_KEY || '';
+const ETH_RPC_URL = process.env.ETH_RPC_URL || process.env.BASE_RPC_URL || '';
+const ETH_PRIVATE_KEY = process.env.ETH_PRIVATE_KEY || '';
+const ETH_WALLET_ADDRESS = process.env.ETH_WALLET_ADDRESS || '';
 const AUTH_KEYPAIR_PATH = process.env.JITO_AUTH_KEYPAIR_PATH || process.env.AUTH_KEYPAIR_PATH || '';
 
 // Railway compat: decode base64 keypair env var to disk if file doesn't exist
@@ -86,7 +93,10 @@ let proofChain: DecisionProofChain | null = null;
 let knowledgeGraph: TransactionKnowledgeGraph | null = null;
 let networkHealth: NetworkHealthCalculator | null = null;
 let faultInjector: FaultInjector | null = null;
+let keeperhubClient: KeeperHubClient | null = null;
+let executionAdapter: ExecutionAdapter | null = null;
 let jitoReady = false;
+let keeperhubReady = false;
 
 async function initializeStack() {
   console.log('[STACK] Initializing keeper-agent components...');
@@ -123,7 +133,38 @@ async function initializeStack() {
     console.warn('[STACK] FailureReasoningAgent init skipped:', err.message);
   }
 
-  // 7. Jito Manager (only if keypair exists)
+  // 7. KeeperHub Client (if API key configured)
+  if (KEEPERHUB_API_KEY) {
+    try {
+      keeperhubClient = getKeeperHubClient({
+        apiKey: KEEPERHUB_API_KEY,
+        ethPrivateKey: ETH_PRIVATE_KEY || undefined,
+        ethAddress: ETH_WALLET_ADDRESS || undefined,
+      });
+      console.log('[KEEPERHUB] Client initialized');
+
+      // Create execution adapter
+      executionAdapter = new ExecutionAdapter(
+        null as any, // placeholder — Jito passed at runtime
+        keeperhubClient,
+        {
+          keeperhub: { apiKey: KEEPERHUB_API_KEY },
+          ethRpcUrl: ETH_RPC_URL || undefined,
+          ethWallet: ETH_PRIVATE_KEY && ETH_WALLET_ADDRESS
+            ? { privateKey: ETH_PRIVATE_KEY, address: ETH_WALLET_ADDRESS }
+            : undefined,
+        }
+      );
+
+      const available = await executionAdapter.isAvailable();
+      keeperhubReady = available;
+      console.log(`[KEEPERHUB] Ready - workflows: ${available ? '✅' : '❌'}`);
+    } catch (err: any) {
+      console.warn('[KEEPERHUB] Init failed:', err.message);
+    }
+  }
+
+  // 8. Jito Manager (only if keypair exists)
   if (AUTH_KEYPAIR_PATH) {
     const resolvedPath = path.isAbsolute(AUTH_KEYPAIR_PATH)
       ? AUTH_KEYPAIR_PATH
@@ -134,6 +175,12 @@ async function initializeStack() {
         jitoManager = new JitoManager(connection);
         await jitoManager.initialize();
         jitoReady = true;
+
+        // Wire Jito into execution adapter
+        if (executionAdapter) {
+          (executionAdapter as any).jitoManager = jitoManager;
+        }
+
         console.log('[STACK] JitoManager initialized successfully');
       } catch (err: any) {
         console.warn('[STACK] JitoManager init failed:', err.message);
@@ -146,7 +193,7 @@ async function initializeStack() {
     console.warn('[STACK] No AUTH_KEYPAIR_PATH set. Bundle submission disabled.');
   }
 
-  console.log(`[STACK] Ready - Jito: ${jitoReady ? 'LIVE' : 'API-ONLY'}`);
+  console.log(`[STACK] Ready - Jito: ${jitoReady ? 'LIVE' : 'API-ONLY'} | KeeperHub: ${keeperhubReady ? 'LIVE' : 'API-ONLY'}`);
 }
 
 // ===== State =====
@@ -266,29 +313,36 @@ async function handleBundleSubmit(req: http.IncomingMessage, res: http.ServerRes
     if (!payment.paid) { x402PaymentRequired(res, PRICE_PER_BUNDLE); return; }
 
     const body = await parseBody(req);
-    const { transactions, tipLamports, priority, webhookUrl } = body;
+    const { transactions, chain: rawChain, tipLamports, priority, webhookUrl, evmTx, idempotencyKey } = body;
 
-    if (!transactions || !Array.isArray(transactions) || transactions.length === 0) {
-      error(res, 400, 'Missing or invalid transactions array');
-      return;
-    }
+    // Detect chain — default to solana for backward compatibility
+    const chain = (rawChain || 'solana').toLowerCase();
+    const isEvm = ['ethereum', 'base', 'polygon', 'arbitrum', 'optimism'].includes(chain);
 
-    console.log(`[BUNDLE] ${transactions.length} tx(s) received`);
+    console.log(`[BUNDLE] ${chain} | ${transactions?.length || 1} tx(s) received`);
 
-    const slot = await connection.getSlot();
-    const result: any = {
-      slot,
-      transactionCount: transactions.length,
-      jitoReady,
-      retries: [] as any[],
-    };
+    // === SOLANA PATH (existing Jito flow) ===
+    if (chain === 'solana') {
+      if (!transactions || !Array.isArray(transactions) || transactions.length === 0) {
+        error(res, 400, 'Missing or invalid transactions array for Solana');
+        return;
+      }
 
-    const tipRec = await tipOracle.getRecommendedTip(priority || 'medium');
-    const initialTip = Math.max(tipLamports || tipRec.lamports, 1000);
-    const marketContext = await tipOracle.getMarketContext();
-    result.marketTipFloor = marketContext;
+      const slot = await connection.getSlot();
+      const result: any = {
+        slot,
+        transactionCount: transactions.length,
+        jitoReady,
+        chain: 'solana',
+        retries: [] as any[],
+      };
 
-    if (jitoReady && jitoManager) {
+      const tipRec = await tipOracle.getRecommendedTip(priority || 'medium');
+      const initialTip = Math.max(tipLamports || tipRec.lamports, 1000);
+      const marketContext = await tipOracle.getMarketContext();
+      result.marketTipFloor = marketContext;
+
+      if (jitoReady && jitoManager) {
       const decodedTxs: VersionedTransaction[] = [];
       const deserializeErrors: string[] = [];
       for (let i = 0; i < transactions.length; i++) {
@@ -435,22 +489,115 @@ async function handleBundleSubmit(req: http.IncomingMessage, res: http.ServerRes
       }
     } else {
       bundleCount++;
-      result.message = 'Bundle prepared (Jito not connected run with keypair to submit live)';
+      result.message = 'Bundle prepared (Jito not connected — run with keypair to submit live)';
       result.recommendedTip = initialTip;
       result.networkHealth = 'N/A (no connection)';
     }
 
     success(res, {
-      bundleId: result.bundleId || ("bundle_" + Date.now()),
+      bundleId: result.bundleId || ('bundle_' + Date.now()),
       details: result,
-      pricing: { charged: payment.amount || PRICE_PER_BUNDLE, unit: "USDT" },
+      pricing: { charged: payment.amount || PRICE_PER_BUNDLE, unit: 'USDT' },
     });
 
     if (webhookUrl && !jitoReady) {
-      webhookManager.fire(result.bundleId || ("bundle_" + Date.now()), {
-        status: "prepared", slot, error: "Jito not connected", pricing: { charged: payment.amount || PRICE_PER_BUNDLE, unit: "USDT" }
+      webhookManager.fire(result.bundleId || ('bundle_' + Date.now()), {
+        status: 'prepared', slot, error: 'Jito not connected', pricing: { charged: payment.amount || PRICE_PER_BUNDLE, unit: 'USDT' }
       });
     }
+    return;
+  } // end Solana path
+
+  // === ETHEREUM / EVM PATH (via KeeperHub MCP) ===
+  if (isEvm) {
+    if (!executionAdapter) {
+      error(res, 503, 'KeeperHub execution adapter not initialized. Set KEEPERHUB_API_KEY env var.');
+      return;
+    }
+
+    try {
+      const execResult = await executionAdapter.execute({
+        chain: chain as any,
+        evmTx: evmTx || undefined,
+        evmRawTx: (transactions && transactions[0]) || undefined,
+        tipAmount: tipLamports,
+        webhookUrl,
+        idempotencyKey,
+      });
+
+      bundleCount++;
+      if (execResult.success) {
+        bundleSuccessCount++;
+        totalRevenueUsdt += PRICE_PER_BUNDLE;
+        const today = new Date().getDate();
+        if (today !== lastRevenueResetDay) { todayRevenueUsdt = 0; lastRevenueResetDay = today; }
+        todayRevenueUsdt += PRICE_PER_BUNDLE;
+      } else {
+        bundleFailCount++;
+      }
+
+      // Log to proof chain
+      if (proofChain && execResult.proofHash) {
+        proofChain.recordDecision(
+          {
+            bundleId: execResult.proofHash,
+            failureType: execResult.success ? 'submitted' : 'evm_rejected',
+            stage: 'submitted',
+            submissionSlot: 0,
+            blockhashAge: 0,
+            slotConditions: { skipRate: 0.15, congestionLevel: 0.3, leaderQuality: 0.75 },
+            recentTips: [0],
+            submissionLatency: 0,
+          },
+          {
+            action: execResult.success ? 'submit' : 'abort',
+            tip_adjustment_percent: 0,
+            blockhash_refresh: false,
+            delay_ms: 0,
+            reasoning_summary: execResult.success
+              ? `EVM tx submitted via KeeperHub: ${execResult.txHash?.substring(0, 20)}...`
+              : `EVM tx failed: ${execResult.error}`,
+          },
+          { tipSource: 'keeperhub', retries: execResult.retries, txs: 1 }
+        );
+      }
+
+      // Fire webhook
+      if (webhookUrl) {
+        webhookManager.fire(
+          execResult.txHash || execResult.proofHash || 'evm_' + Date.now(),
+          {
+            status: execResult.success ? 'submitted' : 'failed',
+            chain,
+            txHash: execResult.txHash,
+            error: execResult.error || null,
+            retries: execResult.retries,
+            pricing: { charged: payment.amount || PRICE_PER_BUNDLE, unit: 'USDT' },
+          }
+        );
+      }
+
+      success(res, {
+        bundleId: execResult.txHash || execResult.bundleId || ('evm_' + Date.now()),
+        details: {
+          chain,
+          txHash: execResult.txHash,
+          status: execResult.success ? 'submitted' : 'failed',
+          keeperhub: execResult.keeperhubResult || undefined,
+          proofHash: execResult.proofHash,
+          error: execResult.error || null,
+        },
+        pricing: { charged: payment.amount || PRICE_PER_BUNDLE, unit: 'USDT' },
+      });
+    } catch (e: any) {
+      console.error('[BUNDLE][EVM] Error:', e.message);
+      error(res, 502, 'EVM execution failed', { message: e.message });
+    }
+    return;
+  } // end EVM path
+
+  // unsupported chain
+  error(res, 400, `Unsupported chain: ${chain}. Supported: solana, ethereum, base, polygon, arbitrum, optimism`);
   } catch (err: any) {
     console.error('[BUNDLE] Error:', err);
     error(res, 500, 'Bundle processing failed', { message: err.message });
@@ -959,7 +1106,7 @@ const routes: Record<string, Record<string, (req: http.IncomingMessage, res: htt
           { path: 'GET /api/v1/graph', description: 'Knowledge graph export' },
           { path: 'GET /api/v1/graph/insights', description: 'Pattern insights from knowledge graph' },
           { path: 'GET /api/v1/health/network', description: 'Network health score (0-100)' },
-          { path: 'POST /api/v1/bundle', description: 'Submit Jito bundle with DeepSeek AI analysis', pricing: `${PRICE_PER_BUNDLE} USDT` },
+          { path: 'POST /api/v1/bundle', description: 'Submit transaction (Solana via Jito, EVM via KeeperHub)', pricing: `${PRICE_PER_BUNDLE} USDT` },
           { path: 'POST /api/v1/analyze', description: 'Analyze for onchain opportunities with DeepSeek AI', pricing: `${PRICE_PER_ANALYSIS} USDT` },
           { path: 'POST /api/v1/learn', description: 'Feed bundle outcome for Hebbian learning' },
         ]
