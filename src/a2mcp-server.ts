@@ -1,15 +1,15 @@
 /**
- * A2MCP API Server — Solana MEV Agent
- * 
+ * A2MCP API Server - Solana MEV Agent
+ *
  * Agent-to-MCP service for OKX.AI marketplace.
  * Integrates with the real solana-tx-stack:
  * - JitoManager for actual bundle submission
  * - HebbianTipOptimizer for ML-based tip learning
  * - Pre-flight simulation for safety
  * - Network health scoring
- * 
+ *
  * x402 Payment Standard ready (OKX Payment SDK / OnchainOS)
- * 
+ *
  * @author Cloud99p
  * @license MIT
  */
@@ -71,7 +71,7 @@ ensureKeypairFile();
 const DEBUG = process.env.DEBUG === 'true';
 
 // Pricing
-const PRICE_PER_BUNDLE = parseInt(process.env.PRICE_PER_BUNDLE || '2');
+const PRICE_PER_BUNDLE = parseInt(process.env.PRICE_PER_BUNDLE || '1');
 const PRICE_PER_ANALYSIS = parseInt(process.env.PRICE_PER_ANALYSIS || '1');
 const MIN_TIP = parseInt(process.env.MIN_TIP_LAMPORTS || '1000');
 
@@ -146,7 +146,7 @@ async function initializeStack() {
     console.warn('[STACK] No AUTH_KEYPAIR_PATH set. Bundle submission disabled.');
   }
 
-  console.log(`[STACK] Ready — Jito: ${jitoReady ? 'LIVE' : 'API-ONLY'}`);
+  console.log(`[STACK] Ready - Jito: ${jitoReady ? 'LIVE' : 'API-ONLY'}`);
 }
 
 // ===== State =====
@@ -458,7 +458,7 @@ async function handleBundleSubmit(req: http.IncomingMessage, res: http.ServerRes
 }
 
 /**
- * POST /api/v1/analyze — Analyze transactions for MEV potential
+ * POST /api/v1/analyze - Analyze transactions for MEV potential
  */
 async function handleAnalyze(req: http.IncomingMessage, res: http.ServerResponse) {
   try {
@@ -492,7 +492,7 @@ async function handleAnalyze(req: http.IncomingMessage, res: http.ServerResponse
 }
 
 /**
- * POST /api/v1/learn — Feed bundle outcome for Hebbian learning
+ * POST /api/v1/learn - Feed bundle outcome for Hebbian learning
  */
 async function handleLearn(req: http.IncomingMessage, res: http.ServerResponse) {
   try {
@@ -526,7 +526,7 @@ async function handleLearn(req: http.IncomingMessage, res: http.ServerResponse) 
 }
 
 /**
- * GET /api/v1/insights — Hebbian learning insights
+ * GET /api/v1/insights - Hebbian learning insights
  */
 async function handleInsights(res: http.ServerResponse) {
   const insights = hebbianOptimizer?.getInsights
@@ -545,7 +545,7 @@ async function handleInsights(res: http.ServerResponse) {
 }
 
 /**
- * GET /api/v1/proof — Export cryptographic proof chain
+ * GET /api/v1/proof - Export cryptographic proof chain
  */
 async function handleProof(req: http.IncomingMessage, res: http.ServerResponse) {
   if (!proofChain) {
@@ -560,7 +560,7 @@ async function handleProof(req: http.IncomingMessage, res: http.ServerResponse) 
 }
 
 /**
- * GET /api/v1/proof/verify — Verify proof chain integrity
+ * GET /api/v1/proof/verify - Verify proof chain integrity
  */
 async function handleProofVerify(res: http.ServerResponse) {
   if (!proofChain) {
@@ -576,7 +576,7 @@ async function handleProofVerify(res: http.ServerResponse) {
 }
 
 /**
- * GET /api/v1/proof/report — Markdown proof chain report
+ * GET /api/v1/proof/report - Markdown proof chain report
  */
 async function handleProofReport(res: http.ServerResponse) {
   if (!proofChain) {
@@ -588,7 +588,7 @@ async function handleProofReport(res: http.ServerResponse) {
 }
 
 /**
- * GET /api/v1/graph — Knowledge graph export
+ * GET /api/v1/graph - Knowledge graph export
  */
 async function handleGraph(res: http.ServerResponse) {
   if (!knowledgeGraph) {
@@ -602,7 +602,7 @@ async function handleGraph(res: http.ServerResponse) {
 }
 
 /**
- * GET /api/v1/graph/insights — Pattern insights from knowledge graph
+ * GET /api/v1/graph/insights - Pattern insights from knowledge graph
  */
 async function handleGraphInsights(res: http.ServerResponse) {
   if (!knowledgeGraph) {
@@ -617,7 +617,7 @@ async function handleGraphInsights(res: http.ServerResponse) {
 }
 
 /**
- * GET /api/v1/health/network — Network health score (0-100)
+ * GET /api/v1/health/network - Network health score (0-100)
  */
 async function handleNetworkHealth(res: http.ServerResponse) {
   if (!networkHealth) {
@@ -635,7 +635,7 @@ async function handleNetworkHealth(res: http.ServerResponse) {
 }
 
 /**
- * GET /api/v1/fault — Get active fault injection status
+ * GET /api/v1/fault - Get active fault injection status
  */
 async function handleFaultStatus(res: http.ServerResponse) {
   if (!faultInjector) {
@@ -651,7 +651,7 @@ async function handleFaultStatus(res: http.ServerResponse) {
 }
 
 /**
- * POST /api/v1/fault — Inject test fault
+ * POST /api/v1/fault - Inject test fault
  */
 async function handleFaultInject(req: http.IncomingMessage, res: http.ServerResponse) {
   try {
@@ -697,7 +697,7 @@ async function handleFaultInject(req: http.IncomingMessage, res: http.ServerResp
 }
 
 /**
- * DELETE /api/v1/fault — Clear active faults
+ * DELETE /api/v1/fault - Clear active faults
  */
 async function handleFaultReset(req: http.IncomingMessage, res: http.ServerResponse) {
   if (!faultInjector) {
@@ -709,7 +709,7 @@ async function handleFaultReset(req: http.IncomingMessage, res: http.ServerRespo
 }
 
 /**
- * GET /api/v1/status — Agent status & capabilities
+ * GET /api/v1/status - Agent status & capabilities
  */
 async function handleStatus(res: http.ServerResponse) {
   const uptime = Math.floor((Date.now() - serverStartTime) / 1000);
@@ -753,7 +753,7 @@ async function handleStatus(res: http.ServerResponse) {
 }
 
 /**
- * GET /api/v1/health — Lite health check
+ * GET /api/v1/health - Lite health check
  */
 async function handleHealth(res: http.ServerResponse) {
   let rpcOk = false;
@@ -780,7 +780,7 @@ async function handleHealth(res: http.ServerResponse) {
 }
 
 /**
- * GET /api/v1/metrics — Performance metrics
+ * GET /api/v1/metrics - Performance metrics
  */
 async function handleMetrics(res: http.ServerResponse) {
   const oneHourAgo = Date.now() - 3600000;
@@ -807,14 +807,14 @@ async function handleMetrics(res: http.ServerResponse) {
 }
 
 /**
- * GET /api/v1/brief — Morning market brief
+ * GET /api/v1/brief - Morning market brief
  */
 let briefCache: { data: BriefData; timestamp: number } | null = null;
 const BRIEF_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 
 /**
- * GET /api/v1/stats — Comprehensive agent statistics dashboard
+ * GET /api/v1/stats - Comprehensive agent statistics dashboard
  */
 async function handleStats(res: http.ServerResponse) {
   const oneHourAgo = Date.now() - 3600000;
@@ -874,7 +874,7 @@ async function handleStats(res: http.ServerResponse) {
 }
 
 /**
- * GET /api/v1/webhooks — List pending webhook callbacks
+ * GET /api/v1/webhooks - List pending webhook callbacks
  */
 function handleWebhooks(res: http.ServerResponse) {
   const pending = webhookManager.getPending();
@@ -959,9 +959,6 @@ const routes: Record<string, Record<string, (req: http.IncomingMessage, res: htt
           { path: 'GET /api/v1/graph', description: 'Knowledge graph export' },
           { path: 'GET /api/v1/graph/insights', description: 'Pattern insights from knowledge graph' },
           { path: 'GET /api/v1/health/network', description: 'Network health score (0-100)' },
-          { path: 'GET /api/v1/fault', description: 'Active fault injection status' },
-          { path: 'POST /api/v1/fault', description: 'Inject test fault' },
-          { path: 'DELETE /api/v1/fault', description: 'Clear active faults' },
           { path: 'POST /api/v1/bundle', description: 'Submit Jito bundle with DeepSeek AI analysis', pricing: `${PRICE_PER_BUNDLE} USDT` },
           { path: 'POST /api/v1/analyze', description: 'Analyze for MEV opportunities with DeepSeek AI', pricing: `${PRICE_PER_ANALYSIS} USDT` },
           { path: 'POST /api/v1/learn', description: 'Feed bundle outcome for Hebbian learning' },
@@ -1033,13 +1030,13 @@ const server = http.createServer(async (req, res) => {
           'GET /api/v1/health', 'GET /api/v1/status', 'GET /api/v1/metrics', 'GET /api/v1/brief',
           'GET /api/v1/proof', 'GET /api/v1/proof/verify', 'GET /api/v1/proof/report',
           'GET /api/v1/graph', 'GET /api/v1/graph/insights',
-          'GET /api/v1/health/network', 'GET /api/v1/stats', 'GET /api/v1/webhooks', 'GET /api/v1/fault',
-          'POST /api/v1/bundle', 'POST /api/v1/analyze', 'POST /api/v1/learn', 'POST /api/v1/fault',
+          'GET /api/v1/health/network', 'GET /api/v1/stats', 'GET /api/v1/webhooks',
+          'POST /api/v1/bundle', 'POST /api/v1/analyze', 'POST /api/v1/learn',
           'DELETE /api/v1/fault'
         ]
       });
     } else {
-      // Root — info page
+      // Root - info page
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
       res.end(`<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${AGENT_NAME}</title>
@@ -1049,17 +1046,17 @@ code{background:#f4f4f4;padding:2px 6px;border-radius:4px;font-family:'Courier N
 <body>
 <h1>${AGENT_NAME} 🚀</h1>
 <p class="badge">A2MCP Service on OKX.AI</p>
-<p>Solana MEV Agent — Jito bundle submission with Hebbian tip optimization.</p>
+<p>Solana MEV Agent - Jito bundle submission with Hebbian tip optimization.</p>
 <h3>API Endpoints</h3>
 <ul>
-<li><code>GET /api/v1/health</code> — Service health</li>
-<li><code>GET /api/v1/status</code> — Agent capabilities & stats</li>
-<li><code>GET /api/v1/metrics</code> — Performance metrics</li>
-<li><code>POST /api/v1/bundle</code> — Submit Jito bundle</li>
-<li><code>POST /api/v1/analyze</code> — MEV analysis</li>
-<li><code>GET /api/v1/proof</code> — Cryptographic proof chain</li>
-<li><code>GET /api/v1/health/network</code> — Network health score</li>
-<li><code>POST /api/v1/fault</code> — Inject test fault</li>
+<li><code>GET /api/v1/health</code> - Service health</li>
+<li><code>GET /api/v1/status</code> - Agent capabilities & stats</li>
+<li><code>GET /api/v1/metrics</code> - Performance metrics</li>
+<li><code>POST /api/v1/bundle</code> - Submit Jito bundle</li>
+<li><code>POST /api/v1/analyze</code> - MEV analysis</li>
+<li><code>GET /api/v1/proof</code> - Cryptographic proof chain</li>
+<li><code>GET /api/v1/health/network</code> - Network health score</li>
+
 </ul>
 <p>Powered by <strong>solana-tx-stack</strong> v${AGENT_VERSION} | Jito: ${jitoReady ? '✅ LIVE' : '❌ API-ONLY'} | AI: ${failureAgent ? '✅ DeepSeek' : '❌ N/A'} | Proof: ${proofChain ? '✅ SHA-256' : '❌ N/A'}</p>
 </body></html>`);
@@ -1102,7 +1099,7 @@ initializeStack().then(() => {
     console.log(`   Proof:      /api/v1/proof`);
     console.log(`   Graph:      /api/v1/graph/insights`);
     console.log(`   Network:    /api/v1/health/network`);
-    console.log(`   Fault:      POST /api/v1/fault`);
+    console.log(``);
     console.log(`\n📋 Deploy and register:`);
     console.log(`   Railway:  npx tsx src/a2mcp-server.ts`);
     console.log(`   Register: "Help me register an A2MCP ASP on OKX.AI"`);

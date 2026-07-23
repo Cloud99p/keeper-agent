@@ -14,7 +14,7 @@ import * as path from 'path';
 
 // ===== Stack Imports =====
 import { JitoManager } from './jito-manager.js';
-import { GeyserClient } from './geyser-client.js';
+import { YellowstoneService } from './yellowstone.js';
 import { TxBuilder } from './tx-builder.js';
 import { HebbianTipOptimizer } from './hebbian-optimizer.js';
 import { FailureReasoningAgent, RetryParameters, NetworkHealthContext } from './ai-agent.js';
@@ -50,7 +50,7 @@ let knowledgeGraph: TransactionKnowledgeGraph | null = null;
 let networkHealth: NetworkHealthCalculator | null = null;
 let faultInjector: FaultInjector | null = null;
 let lifecycleTracker: LifecycleTracker | null = null;
-let geyserClient: GeyserClient | null = null;
+let geyserClient: YellowstoneService | null = null;
 let txBuilder: TxBuilder | null = null;
 
 let jitoReady = false;
@@ -122,13 +122,13 @@ async function initializeStack(): Promise<void> {
     jitoReady = false;
   }
 
-  // 11. Geyser client (real-time slot/account streaming)
+  // 11. Yellowstone gRPC service (real-time slot/account streaming)
   try {
-    geyserClient = new GeyserClient();
-    await geyserClient.connect();
-    log('GeyserClient connected');
+    geyserClient = new YellowstoneService(config);
+    await geyserClient.initialize();
+    log('Yellowstone gRPC connected');
   } catch (e: any) {
-    warn(`GeyserClient connection failed: ${e.message}`);
+    warn(`Yellowstone gRPC connection failed: ${e.message}`);
   }
 
   // 12. Tx builder
@@ -336,7 +336,7 @@ async function main() {
     console.log(`   DeepSeek AI:       ${deepSeekClient?.isEnabled() ? '✅ ON' : '⚠️ Fallback'}`);
     console.log(`   Tip Oracle:        ✅ ON`);
     console.log(`   Webhook Manager:   ✅ ON`);
-    console.log(`   Geyser Client:     ${geyserClient ? '✅ Connected' : '⚠️ Disconnected'}`);
+    console.log(`   Yellowstone gRPC:  ${geyserClient ? '✅ Connected' : '⚠️ Disconnected'}`);
     console.log();
     console.log(`Press Ctrl+C to stop`);
     console.log();
@@ -350,7 +350,7 @@ async function shutdown(): Promise<void> {
   console.log('\n🛑 Shutting down...');
 
   if (geyserClient) {
-    try { await geyserClient.disconnect(); log('Geyser disconnected'); } catch {}
+    try { await geyserClient.shutdown(); log('Yellowstone gRPC disconnected'); } catch {}
   }
 
   // Export final stats
