@@ -316,7 +316,7 @@ export class KeeperHubClient {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.config.apiKey}`,
-          'User-Agent': 'keeper-agent/1.0',
+          'User-Agent': 'Mozilla/5.0',
           ...extraHeaders,
         },
       };
@@ -357,7 +357,7 @@ export class KeeperHubClient {
       const mod = url.startsWith('https') ? https : http;
       const req = mod.get(
         url,
-        { headers: { 'Authorization': `Bearer ${this.config.apiKey}`, 'User-Agent': 'keeper-agent/1.0' } },
+        { headers: { 'Authorization': `Bearer ${this.config.apiKey}`, 'User-Agent': 'Mozilla/5.0' } },
         (res) => {
           let d = '';
           res.on('data', (c) => (d += c));
