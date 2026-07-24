@@ -38,13 +38,34 @@ fi
 echo "  ✅ Server online"
 echo ""
 
-# 2. Brief / status
+# 2. Server status (use /status — fast, no external calls)
 echo "→ Server status..."
-curl -sf --max-time 3 "$BASE_URL/api/v1/brief" | node -e "
+curl -s --max-time 5 "$BASE_URL/api/v1/status" | node -e "
   let d=''; process.stdin.on('data',c=>d+=c); process.stdin.on('end',()=>{
     const j=JSON.parse(d);
-    console.log('  KeeperHub: ' + (j.keepersStatus || 'N/A'));
-    console.log('  F&G: ' + (j.fearAndGreed?.value || 'N/A'));
+    console.log('  Status: ' + (j.status || 'N/A'));
+    console.log('  Version: ' + (j.version || 'N/A'));
+    console.log('  Uptime: ' + (j.uptimeHuman || j.uptime || 'N/A'));
+    console.log('  Bundles: ' + (j.stats?.totalBundles || 0) + ' (' + (j.stats?.bundleSuccessRate || 'N/A') + ' success)');
+    console.log('  DeepSeek: ' + (j.ai?.deepseekEnabled ? '✅' : '❌'));
+    console.log('  Jito: ' + (j.stack?.jito || 'N/A'));
+  });
+"
+echo ""
+
+# 2b. Quick market snapshot (from brief with longer timeout)
+echo "→ Market snapshot..."
+curl -s --max-time 10 "$BASE_URL/api/v1/brief" | node -e "
+  let d=''; process.stdin.on('data',c=>d+=c); process.stdin.on('end',()=>{
+    try {
+      const j=JSON.parse(d);
+      console.log('  F&G: ' + (j.fearAndGreed?.value || 'N/A') + ' — ' + (j.fearAndGreed?.label || ''));
+      console.log('  BTC: \$' + (j.crypto?.BTC?.toLocaleString() || 'N/A'));
+      console.log('  ETH: \$' + (j.crypto?.ETH?.toLocaleString() || 'N/A'));
+      console.log('  SOL: \$' + (j.crypto?.SOL?.toLocaleString() || 'N/A'));
+    } catch(e) {
+      console.log('  (brief unavailable — first call may time out)');
+    }
   });
 "
 echo ""
