@@ -214,7 +214,7 @@ export class KeeperHubClient {
     const paymentSignature = Buffer.from(JSON.stringify(payload)).toString('base64');
 
     // Retry with PAYMENT-SIGNATURE header
-    const { status, body } = await this.httpPost(url, inputs, {
+    const { status, body } = await this.httpPost(url, workflow.inputs, {
       'PAYMENT-SIGNATURE': paymentSignature,
       'Content-Type': 'application/json',
     });
@@ -258,9 +258,16 @@ export class KeeperHubClient {
   async listWorkflows(): Promise<Array<{ slug: string; name: string; price: number }>> {
     const url = `${this.baseUrl}/api/mcp/workflows`;
     const { status, body } = await this.httpGet(url);
+    if (status === 200 && body && body.items && Array.isArray(body.items)) {
+      return body.items.map((w: any) => ({
+        slug: w.listedSlug || w.slug,
+        name: w.name,
+        price: w.priceUsdcPerCall || 0,
+      }));
+    }
     if (status === 200 && Array.isArray(body)) {
       return body.map((w: any) => ({
-        slug: w.slug,
+        slug: w.listedSlug || w.slug,
         name: w.name,
         price: w.priceUsdcPerCall || 0,
       }));
@@ -393,6 +400,7 @@ export class KeeperHubClient {
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${this.config.apiKey}`,
+        'Mcp-Protocol-Version': '2025-03-26',
         'Content-Length': String(Buffer.byteLength(payload)),
       };
       if (sessionId) headers['Mcp-Session-Id'] = sessionId;
