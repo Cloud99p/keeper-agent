@@ -339,7 +339,7 @@ export class KeeperHubClient {
           resolve({ status: res.statusCode || 500, body: parsed, headers: h });
         });
       });
-      req.setTimeout(5000, () => {
+      req.setTimeout(15000, () => {
         req.destroy();
         reject(new Error(`Request timed out: ${url}`));
       });
@@ -377,7 +377,7 @@ export class KeeperHubClient {
           });
         }
       );
-      req.setTimeout(5000, () => {
+      req.setTimeout(15000, () => {
         req.destroy();
         reject(new Error(`Request timed out: ${url}`));
       });
@@ -421,7 +421,7 @@ export class KeeperHubClient {
           }
         });
       });
-      req.setTimeout(10000, () => { req.destroy(); reject(new Error('MCP request timed out')); });
+      req.setTimeout(15000, () => { req.destroy(); reject(new Error('MCP request timed out')); });
       req.on('error', reject);
       req.write(payload);
       req.end();
@@ -448,29 +448,42 @@ export class KeeperHubClient {
    */
   async directExecuteTransfer(params: {
     chainId: string;
-    toAddress: string;
+    recipientAddress: string;
     amount: string;
     tokenAddress?: string;
   }): Promise<{ executionId: string; status: string; txHash?: string; txLink?: string }> {
     const url = `${this.baseUrl}/api/execute/transfer`;
-    const { status, body } = await this.httpPost(url, {
-      chainId: params.chainId,
-      toAddress: params.toAddress,
-      amount: params.amount,
-      ...(params.tokenAddress ? { tokenAddress: params.tokenAddress } : {}),
-    });
-    if (status === 200) {
-      return body as any;
-    }
-    // 402 = x402 payment required — throw challenge info
-    if (status === 402) {
-      const challenge = this.parse402Challenge({}, body);
-      if (challenge) {
-        throw new Error(`x402 payment required: ${challenge.amount} USDC on ${challenge.chain}`);
+    // Retry once on timeout — Cloudflare routing can be intermittent
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const { status, body } = await this.httpPost(url, {
+          chainId: params.chainId,
+          recipientAddress: params.recipientAddress,
+          amount: params.amount,
+          ...(params.tokenAddress ? { tokenAddress: params.tokenAddress } : {}),
+        });
+        if (status === 200 || status === 202) {
+          return body as any;
+        }
+        // 402 = x402 payment required — throw challenge info
+        if (status === 402) {
+          const challenge = this.parse402Challenge({}, body);
+          if (challenge) {
+            throw new Error(`x402 payment required: ${challenge.amount} USDC on ${challenge.chain}`);
+          }
+          throw new Error(`Direct execution returned 402: ${JSON.stringify(body).substring(0, 300)}`);
+        }
+        throw new Error(`Direct execution returned ${status}: ${JSON.stringify(body).substring(0, 500)}`);
+      } catch (err: any) {
+        if (attempt === 0 && err.message?.includes('timed out')) {
+          console.warn(`[KEEPERHUB] Direct execution attempt ${attempt + 1} timed out, retrying...`);
+          await new Promise(r => setTimeout(r, 500));
+          continue;
+        }
+        throw err;
       }
-      throw new Error(`Direct execution returned 402: ${JSON.stringify(body).substring(0, 300)}`);
     }
-    throw new Error(`Direct execution returned ${status}: ${JSON.stringify(body).substring(0, 500)}`);
+    throw new Error('Direct execution failed after retries');
   }
 
   /**

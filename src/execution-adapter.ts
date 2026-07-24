@@ -181,7 +181,7 @@ export class ExecutionAdapter {
     try {
       const result = await this.keeperhubClient.directExecuteTransfer({
         chainId: String(chainId),
-        toAddress: request.evmTx?.to || '0x0000000000000000000000000000000000000001',
+        recipientAddress: request.evmTx?.to || '0x0000000000000000000000000000000000000001',
         amount: request.evmTx?.value || '0',
       });
 
