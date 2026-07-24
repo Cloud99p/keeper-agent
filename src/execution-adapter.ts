@@ -177,7 +177,75 @@ export class ExecutionAdapter {
   private async executeEthereum(request: ExecutionRequest): Promise<ExecutionResult> {
     const chainId = this.getChainId(request.chain);
 
-    // Step 1: Try KeeperHub MCP execute_transfer (gas sponsored on testnets)
+    // Step 1: Try Direct Execution REST API (fast path — no MCP session)
+    try {
+      const result = await this.keeperhubClient.directExecuteTransfer({
+        chainId: String(chainId),
+        toAddress: request.evmTx?.to || '0x0000000000000000000000000000000000000001',
+        amount: request.evmTx?.value || '0',
+      });
+
+      // Direct Execution may return txHash inline (no polling needed)
+      if (result.txHash) {
+        return {
+          success: true,
+          chain: request.chain,
+          txHash: result.txHash,
+          txLink: result.txLink,
+          keeperhubExecutionId: result.executionId,
+          tip: 0,
+          retries: 0,
+        };
+      }
+
+      // If no txHash yet, poll via MCP status endpoint
+      for (let i = 0; i < 10; i++) {
+        await new Promise(r => setTimeout(r, 500));
+        try {
+          const status = await this.keeperhubClient.mcpGetTransactionStatus(result.executionId);
+          if (status.transactionHash) {
+            return {
+              success: true,
+              chain: request.chain,
+              txHash: status.transactionHash,
+              txLink: status.transactionLink,
+              sponsored: status.sponsored,
+              keeperhubExecutionId: result.executionId,
+              tip: 0,
+              retries: i,
+            };
+          }
+          if (status.error) {
+            return {
+              success: false,
+              chain: request.chain,
+              error: status.error,
+              keeperhubExecutionId: result.executionId,
+              tip: 0,
+              retries: i,
+            };
+          }
+        } catch { /* poll again */ }
+      }
+
+      return {
+        success: false,
+        chain: request.chain,
+        error: 'Timed out waiting for transfer status',
+        tip: 0,
+        retries: 10,
+      };
+    } catch (directErr: any) {
+      // If not a payment/x402 error, log and try MCP fallback
+      if (!directErr.message?.includes('x402') && !directErr.message?.includes('402')) {
+        console.log(`[EXEC] Direct execution unavailable (${directErr.message}), falling back to MCP...`);
+      } else {
+        // x402 payment challenge — propagate up
+        throw directErr;
+      }
+    }
+
+    // Step 2: Try KeeperHub MCP execute_transfer (fallback — gas sponsored on testnets)
     try {
       const result = await this.keeperhubClient.mcpExecuteTransfer({
         chainId: String(chainId),

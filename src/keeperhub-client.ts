@@ -442,6 +442,38 @@ export class KeeperHubClient {
   }
 
   /**
+   * Execute a transfer via the Direct Execution REST API (fast path).
+   * Single HTTPS POST — no MCP session management needed.
+   * Docs: POST /api/execute/transfer
+   */
+  async directExecuteTransfer(params: {
+    chainId: string;
+    toAddress: string;
+    amount: string;
+    tokenAddress?: string;
+  }): Promise<{ executionId: string; status: string; txHash?: string; txLink?: string }> {
+    const url = `${this.baseUrl}/api/execute/transfer`;
+    const { status, body } = await this.httpPost(url, {
+      chainId: params.chainId,
+      toAddress: params.toAddress,
+      amount: params.amount,
+      ...(params.tokenAddress ? { tokenAddress: params.tokenAddress } : {}),
+    });
+    if (status === 200) {
+      return body as any;
+    }
+    // 402 = x402 payment required — throw challenge info
+    if (status === 402) {
+      const challenge = this.parse402Challenge({}, body);
+      if (challenge) {
+        throw new Error(`x402 payment required: ${challenge.amount} USDC on ${challenge.chain}`);
+      }
+      throw new Error(`Direct execution returned 402: ${JSON.stringify(body).substring(0, 300)}`);
+    }
+    throw new Error(`Direct execution returned ${status}: ${JSON.stringify(body).substring(0, 500)}`);
+  }
+
+  /**
    * Execute a transfer via KeeperHub's execute_transfer MCP tool.
    * Returns the execution ID for status polling.
    */
@@ -465,9 +497,14 @@ export class KeeperHubClient {
       },
       id: Date.now(),
     }, sessionId);
-    const text = result?.data?.result?.content?.[0]?.text;
-    if (!text) throw new Error('No execute_transfer result');
-    return JSON.parse(text);
+    const content = result?.data?.result?.content?.[0];
+    if (!content) throw new Error('No execute_transfer result');
+    // MCP tools return errors with isError: true
+    if (result?.data?.result?.isError || content?.isError) {
+      throw new Error(`MCP execute_transfer error: ${content.text}`);
+    }
+    if (!content.text) throw new Error('Empty execute_transfer result');
+    return JSON.parse(content.text);
   }
 
   /**
@@ -491,9 +528,41 @@ export class KeeperHubClient {
       },
       id: Date.now(),
     }, sessionId);
-    const text = result?.data?.result?.content?.[0]?.text;
-    if (!text) throw new Error('No status result');
-    return JSON.parse(text);
+    const content = result?.data?.result?.content?.[0];
+    if (!content) throw new Error('No status result');
+    // MCP tools return errors with isError: true
+    if (result?.data?.result?.isError || content?.isError) {
+      throw new Error(`MCP status error: ${content.text}`);
+    }
+    if (!content.text) throw new Error('Empty status result');
+    return JSON.parse(content.text);
+  }
+
+  /**
+   * Create a new workflow via the REST API.
+   * Docs: POST /api/workflows/create
+   */
+  async createWorkflow(params: {
+    slug: string;
+    name: string;
+    description?: string;
+    projectId?: string;
+    tagId?: string;
+    inputs: Record<string, any>;
+  }): Promise<{ id: string; slug: string; name: string }> {
+    const url = `${this.baseUrl}/api/workflows/create`;
+    const { status, body } = await this.httpPost(url, {
+      slug: params.slug,
+      name: params.name,
+      description: params.description || '',
+      projectId: params.projectId || null,
+      tagId: params.tagId || null,
+      inputs: params.inputs,
+    });
+    if (status === 200 || status === 201) {
+      return body as any;
+    }
+    throw new Error(`Workflow creation returned ${status}: ${JSON.stringify(body).substring(0, 500)}`);
   }
 }
 
