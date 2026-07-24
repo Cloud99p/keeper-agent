@@ -214,7 +214,7 @@ export class KeeperHubClient {
     const paymentSignature = Buffer.from(JSON.stringify(payload)).toString('base64');
 
     // Retry with PAYMENT-SIGNATURE header
-    const { status, body } = await this.httpPost(url, workflow.inputs, {
+    const { status, body } = await this.httpPost(url, inputs, {
       'PAYMENT-SIGNATURE': paymentSignature,
       'Content-Type': 'application/json',
     });
